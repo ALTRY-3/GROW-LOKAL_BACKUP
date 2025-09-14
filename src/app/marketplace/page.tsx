@@ -14,6 +14,7 @@ import Link from "next/link";
 import ImageCarousel from "@/components/ImageCarousel1";
 import "./marketplace.css";
 import { useState, useEffect, useRef } from "react";
+import ProductModal from "@/components/ProductModal";
 
 interface Product {
   img: string;
@@ -23,10 +24,10 @@ interface Product {
   price: string;
 }
 
-// HANDICRAFTS
+// ------------------------- PRODUCT DATA -------------------------
 const handicrafts: Product[] = [
   { img: "/box1.png", hoverImg: "/box1.1.png", name: "Acacia Wood Deep Round Plate", artist: "THERESA", price: "₱149.00" },
-  { img: "/box2.png", hoverImg: "/box2.2.png", name: "Classic Woven Fedora Hat", artist: "TROPIKO  ", price: "₱249.75" },
+  { img: "/box2.png", hoverImg: "/box2.2.png", name: "Classic Woven Fedora Hat", artist: "TROPIKO", price: "₱249.75" },
   { img: "/box3.png", hoverImg: "/box3.3.png", name: "Acacia Wood Salad Tosser", artist: "MANG JUAN", price: "₱349.75" },
   { img: "/box4.png", hoverImg: "/box4.4.png", name: "Acacia Wood Ladle", artist: "MARIA", price: "₱199.00" },
   { img: "/box5.png", hoverImg: "/box5.5.png", name: "Acacia Wood Plate", artist: "JOSE", price: "₱499.00" },
@@ -35,7 +36,6 @@ const handicrafts: Product[] = [
   { img: "/box8.png", hoverImg: "/box8.8.png", name: "Round Nito Placemat", artist: "TAHANAN", price: "₱399.00" },
 ];
 
-// FASHION
 const fashion: Product[] = [
   { img: "/fashion1.png", hoverImg: "/fashion1.1.png", name: "Blue Leaf Print Dress", artist: "PIÑA CLOTH", price: "₱199.75" },
   { img: "/fashion2.png", hoverImg: "/fashion2.2.png", name: "Tie-Dye Tube Dress", artist: "NATURAL", price: "₱699.00" },
@@ -47,7 +47,6 @@ const fashion: Product[] = [
   { img: "/fashion8.png", hoverImg: "/fashion8.8.png", name: "PH Embroidered Cap", artist: "NATIVE", price: "₱249.00" },
 ];
 
-// HOME
 const home: Product[] = [
   { img: "/home1.png", hoverImg: "/home1.1.png", name: "Floral Hand-Painted Fan", artist: "LANDSCAPE", price: "₱249.00" },
   { img: "/home2.png", hoverImg: "/home2.2.png", name: "Miniature Jeepney", artist: "WOOD", price: "₱499.00" },
@@ -59,7 +58,6 @@ const home: Product[] = [
   { img: "/home8.png", hoverImg: "/home8.8.png", name: "Hand-Painted Cushion Cover", artist: "GAPO", price: "₱1,499.00" },
 ];
 
-// FOOD
 const food: Product[] = [
   { img: "/food1.png", hoverImg: "/food1.1.png", name: "Green Banana Chips 85g", artist: "KYLA", price: "₱120.00" },
   { img: "/food2.png", hoverImg: "/food2.2.png", name: "Sabanana Sweet Original 100g", artist: "KYLA", price: "₱89.00" },
@@ -71,7 +69,6 @@ const food: Product[] = [
   { img: "/food8.png", hoverImg: "/food8.8.png", name: "Native Chocolate with Cacao", artist: "ALJHUN", price: "₱99.00" },
 ];
 
-// BEAUTY
 const beauty: Product[] = [
   { img: "/beauty1.png", hoverImg: "/beauty1.1.png", name: "Eucalyptus Massage Oil 230ml", artist: "ATIN", price: "699.00" },
   { img: "/beauty2.png", hoverImg: "/beauty2.2.png", name: "Nourishing Hari Oil 60ml", artist: "SIBOL", price: "379.75" },
@@ -83,9 +80,11 @@ const beauty: Product[] = [
   { img: "/beauty8.png", hoverImg: "/beauty8.8.png", name: "Anti-Dandruff Shampoo Bar 75g", artist: "SIBOL", price: "₱229.00" },
 ];
 
+// ------------------------- MAIN COMPONENT -------------------------
 export default function Marketplace() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   const notifRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
@@ -106,7 +105,7 @@ export default function Marketplace() {
 
   return (
     <div className="marketplace-page">
-      {/* NAVBARS */}
+      {/* NAVBAR */}
       <header className="navbar">
         <div className="left-content">
           <div className="logo-section">
@@ -118,12 +117,9 @@ export default function Marketplace() {
         </div>
 
         <div className="right-content">
-          {/* Notification dropdown */}
+          {/* Notifications */}
           <div className="icon-wrapper" ref={notifRef}>
-            <FaBell
-              className="nav-icon"
-              onClick={() => setShowNotifications(!showNotifications)}
-            />
+            <FaBell className="nav-icon" onClick={() => setShowNotifications(!showNotifications)} />
             {showNotifications && (
               <div className="dropdown dropdown-notifications">
                 <h3 className="dropdown-title">Notifications</h3>
@@ -135,12 +131,9 @@ export default function Marketplace() {
 
           <FaShoppingCart className="nav-icon" />
 
-          {/* Profile dropdown */}
+          {/* Profile */}
           <div className="icon-wrapper" ref={profileRef}>
-            <FaUserCircle
-              className="nav-icon"
-              onClick={() => setShowProfile(!showProfile)}
-            />
+            <FaUserCircle className="nav-icon" onClick={() => setShowProfile(!showProfile)} />
             {showProfile && (
               <div className="dropdown dropdown-profile">
                 <h3 className="dropdown-title">Profile</h3>
@@ -156,7 +149,7 @@ export default function Marketplace() {
         </div>
       </header>
 
-      {/* Keep your sub-navbar, strip, search, carousel, sections, and footer here */}
+      {/* SUB NAV */}
       <nav className="sub-navbar">
         <ul className="sub-nav-links">
           <li><Link href="/marketplace">Marketplace</Link></li>
@@ -170,6 +163,7 @@ export default function Marketplace() {
         <img src="/left-panel.svg" alt="Decorative strip" className="nav-strip-image" />
       </div>
 
+      {/* SEARCH */}
       <div className="search-bar-container">
         <div className="search-bar">
           <FaSearch className="search-icon" />
@@ -177,17 +171,20 @@ export default function Marketplace() {
         </div>
       </div>
 
+      {/* CAROUSEL */}
       <div className="carousel-section">
         <ImageCarousel autoSlide={true} slideInterval={3000} />
         <div className="carousel-text">Discover local treasures.</div>
       </div>
 
-      <Section title="HANDICRAFTS" products={handicrafts} />
-      <Section title="FASHION" products={fashion} />
-      <Section title="HOME" products={home} />
-      <Section title="FOOD" products={food} />
-      <Section title="BEAUTY & WELLNESS" products={beauty} />
+      {/* PRODUCT SECTIONS */}
+      <Section title="HANDICRAFTS" products={handicrafts} setSelectedProduct={setSelectedProduct} />
+      <Section title="FASHION" products={fashion} setSelectedProduct={setSelectedProduct} />
+      <Section title="HOME" products={home} setSelectedProduct={setSelectedProduct} />
+      <Section title="FOOD" products={food} setSelectedProduct={setSelectedProduct} />
+      <Section title="BEAUTY & WELLNESS" products={beauty} setSelectedProduct={setSelectedProduct} />
 
+      {/* FOOTER */}
       <footer className="footer">
         <div className="footer-section about">
           <h3>About GrowLokal</h3>
@@ -219,11 +216,28 @@ export default function Marketplace() {
           </div>
         </div>
       </footer>
+
+      {/* PRODUCT MODAL */}
+      {selectedProduct && (
+        <ProductModal
+          product={selectedProduct}
+          onClose={() => setSelectedProduct(null)}
+        />
+      )}
     </div>
   );
 }
 
-function Section({ title, products }: { title: string; products: Product[] }) {
+// ------------------------- SECTION COMPONENT -------------------------
+function Section({
+  title,
+  products,
+  setSelectedProduct,
+}: {
+  title: string;
+  products: Product[];
+  setSelectedProduct: (product: Product) => void;
+}) {
   return (
     <>
       <div className="section-title">{title}</div>
@@ -233,7 +247,9 @@ function Section({ title, products }: { title: string; products: Product[] }) {
             <div className="image-container">
               <img src={product.img} alt={product.name} className="product-image default" />
               <img src={product.hoverImg} alt={product.name} className="product-image hover" />
-              <button className="view-button">View</button>
+              <button className="view-button" onClick={() => setSelectedProduct(product)}>
+                View
+              </button>
             </div>
             <div className="product-info">
               <h3 className="product-name">{product.name}</h3>
