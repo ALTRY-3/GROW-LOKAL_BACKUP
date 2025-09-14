@@ -1,9 +1,24 @@
 "use client";
 
 import { useState } from "react";
+import { usePathname } from "next/navigation"; 
 import "./chatbot.css";
 
 export default function Chatbot() {
+  const pathname = usePathname() || ""; 
+
+  const hiddenRoutes = [
+    "/login",
+    "/signup",
+    "/reset-password",
+    "/forgot-password",
+    "/otp-verification",
+  ];
+
+  if (hiddenRoutes.includes(pathname)) {
+    return null;
+  }
+
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<{ sender: string; text: string }[]>(
     []
@@ -27,17 +42,14 @@ export default function Chatbot() {
 
   return (
     <div className="chatbot-container">
-      {/* Floating Button */}
       {!isOpen && (
         <button className="chatbot-button" onClick={() => setIsOpen(true)}>
           <i className="fas fa-comment-dots"></i>
         </button>
       )}
 
-      {/* Chat Window */}
       {isOpen && (
         <div className="chatbot-window">
-          {/* Header with Close Button */}
           <div className="chatbot-header">
             <span>Chat with us</span>
             <button
@@ -56,7 +68,6 @@ export default function Chatbot() {
             ))}
           </div>
 
-          {/* Input Field */}
           <div className="chatbot-input">
             <input
               type="text"

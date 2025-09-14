@@ -84,24 +84,29 @@ const beauty: Product[] = [
 export default function Marketplace() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const [showCart, setShowCart] = useState(false);
+  const cartRef = useRef<HTMLDivElement>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   const notifRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
-        setShowNotifications(false);
-      }
-      if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
-        setShowProfile(false);
-      }
+  function handleClickOutside(event: MouseEvent) {
+    if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
+      setShowNotifications(false);
     }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+    if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
+      setShowProfile(false);
+    }
+    if (cartRef.current && !cartRef.current.contains(event.target as Node)) {
+      setShowCart(false);
+    }
+  }
+  document.addEventListener("mousedown", handleClickOutside);
+  return () => document.removeEventListener("mousedown", handleClickOutside);
+}, []);
+
 
   return (
     <div className="marketplace-page">
@@ -129,7 +134,35 @@ export default function Marketplace() {
             )}
           </div>
 
-          <FaShoppingCart className="nav-icon" />
+          {/* Cart */}
+        <div className="icon-wrapper" ref={cartRef}>
+        <FaShoppingCart className="nav-icon" onClick={() => setShowCart(!showCart)} />
+        {showCart && (
+          <div className="dropdown dropdown-cart">
+            <h3 className="dropdown-title">Shopping Cart</h3>
+            <hr className="dropdown-divider" />
+
+            <div className="cart-item">
+              <img src="/beauty3.png" alt="Product" className="cart-item-image" />
+              <div className="cart-item-info">
+                <p className="cart-item-name">Organic Deodorant</p>
+                <p className="cart-item-price">₱229.00</p>
+              </div>
+            </div>
+
+            <div className="cart-item">
+              <img src="/beauty5.png" alt="Product" className="cart-item-image" />
+              <div className="cart-item-info">
+                <p className="cart-item-name">Skin Care Soap</p>
+                <p className="cart-item-price">₱259.000</p>
+              </div>
+            </div>
+
+            <hr className="dropdown-divider" />
+            <button className="cart-checkout-btn">GO TO CART</button>
+          </div>
+        )}
+      </div>
 
           {/* Profile */}
           <div className="icon-wrapper" ref={profileRef}>
