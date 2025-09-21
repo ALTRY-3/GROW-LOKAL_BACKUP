@@ -267,7 +267,6 @@ export default function SignupPage() {
             </div>
 
             <div className="modal-body">
-              {/* Terms content (keep your text here) */}
               <p>Welcome to GrowLokal, a digital marketplace created to connect Olongapo’s artisans, entrepreneurs, and consumers. By accessing or using our platform, you agree to these Terms of Service. Please read them carefully before proceeding. <br /><br />
                 GrowLokal exists to provide a community-driven space where users can explore local crafts, discover cultural products, and support local entrepreneurs. By registering, you confirm that you are <b>at least eighteen (18) years old</b> or that you have the consent of a parent or guardian to use the platform. You also agree to provide accurate and truthful information when creating your account. <br /><br />
                 As a member of GrowLokal, you are expected to use the platform responsibly and respectfully. You must not engage in harmful behavior, post misleading or inappropriate content, or misuse the services provided. Any content you upload, such as product descriptions or images, remains your property; however, by posting, you grant GrowLokal permission to display this content on the platform. <b>Please ensure that all content you share belongs to you or that you have the right to share it.</b><br /><br />

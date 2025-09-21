@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import { FaTimes, FaStar } from "react-icons/fa";
+import Link from "next/link";
 
 interface Product {
   img: string;
@@ -36,9 +37,7 @@ export default function ProductModal({
           <FaTimes />
         </button>
 
-        {/* TOP: LEFT & RIGHT */}
         <div className="modal-content">
-          {/* LEFT SIDE */}
           <div className="modal-left">
             <div className="modal-thumbs">
               <img
@@ -59,12 +58,11 @@ export default function ProductModal({
             </div>
           </div>
 
-          {/* RIGHT SIDE */}
           <div className="modal-right">
             <h2 className="modal-artist">{product.artist}</h2>
-            <button className="artist-story-btn">
+            <Link href="/stories" className="artist-story-btn">
               <i>Artist Story Available</i>
-            </button>
+            </Link>
             <h3 className="modal-product-name">{product.name}</h3>
             <p className="modal-price">{product.price}</p>
             <div className="modal-divider"></div>
@@ -107,21 +105,30 @@ export default function ProductModal({
 
           <div className="about-box">
             <p>
-              Numbered from the edition of 295, with the accompanying certificate
-              of authenticity, on Hahnemühle 350gsm Museum Etching wove paper,
-              with full margins, sheet 700 x 560mm (27 1/2 x 22in) (unframed).
+              Numbered from the edition of 295, with the accompanying
+              certificate of authenticity, on Hahnemühle 350gsm Museum Etching
+              wove paper, with full margins, sheet 700 x 560mm (27 1/2 x 22in)
+              (unframed).
               <br />
               Images are not representative of the actual work or condition; for
-              full information on the condition of this work, request a condition
-              report by emailing <b>specialist@artsy.net</b>.
+              full information on the condition of this work, request a
+              condition report by emailing <b>specialist@artsy.net</b>.
             </p>
           </div>
 
           <div className="about-box">
-            <p><b>Materials:</b> Hahnemühle 350gsm Museum Etching paper</p>
-            <p><b>Size:</b> 27 3/5 × 22 in | 70 × 56 cm</p>
-            <p><b>Medium:</b> Digital pigment print in colours</p>
-            <p><b>Type:</b> Print</p>
+            <p>
+              <b>Materials:</b> Hahnemühle 350gsm Museum Etching paper
+            </p>
+            <p>
+              <b>Size:</b> 27 3/5 × 22 in | 70 × 56 cm
+            </p>
+            <p>
+              <b>Medium:</b> Digital pigment print in colours
+            </p>
+            <p>
+              <b>Type:</b> Print
+            </p>
           </div>
         </div>
       </div>

@@ -10,7 +10,10 @@ interface ImageCarouselProps {
 const images = [
   { src: "/slide4.jpg", alt: "Olongapo traditional crafts and artisans" },
   { src: "/slide5.jpeg", alt: "Local art exhibition and cultural displays" },
-  { src: "/slide6.jpg", alt: "Colorful traditional Filipino textiles and crafts" },
+  {
+    src: "/slide6.jpg",
+    alt: "Colorful traditional Filipino textiles and crafts",
+  },
 ];
 
 export default function ImageCarousel({
