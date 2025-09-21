@@ -17,6 +17,9 @@ export default function SignupPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [agreeToTerms, setAgreeToTerms] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -24,11 +27,73 @@ export default function SignupPage() {
       ...prev,
       [name]: value,
     }));
+    // Clear errors when user starts typing
+    if (error) setError("");
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Signup form submitted:", formData);
+    setError("");
+    setSuccess("");
+
+    // Validation
+    if (!agreeToTerms) {
+      setError("Please agree to the Terms of Service");
+      return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      setError("Password must be at least 6 characters long");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: formData.fullName,
+          email: formData.email,
+          password: formData.password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Something went wrong');
+      }
+
+      // Save token to localStorage (you might want to use a more secure method)
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+
+      setSuccess("Account created successfully! Please check your email for a verification link.");
+      
+      // Store development link if provided
+      if (data.developmentLink) {
+        console.log('Development verification link:', data.developmentLink);
+      }
+
+      // Don't auto-redirect - let user check email first
+      setTimeout(() => {
+        setSuccess("Account created! Check your email to verify your account before logging in.");
+      }, 3000);
+
+    } catch (error: any) {
+      setError(error.message || 'Failed to create account');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -73,6 +138,20 @@ export default function SignupPage() {
           </div>
 
           <form className="signup-form" onSubmit={handleSubmit}>
+            {error && (
+              <div className="error-message">
+                <i className="fas fa-exclamation-triangle"></i>
+                {error}
+              </div>
+            )}
+            
+            {success && (
+              <div className="success-message">
+                <i className="fas fa-check-circle"></i>
+                {success}
+              </div>
+            )}
+
             <div className="input-group">
               <input
                 type="text"
@@ -146,8 +225,15 @@ export default function SignupPage() {
               </label>
             </div>
 
-            <button type="submit" className="signup-button">
-              SIGNUP
+            <button type="submit" className="signup-button" disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <i className="fas fa-spinner fa-spin"></i>
+                  CREATING ACCOUNT...
+                </>
+              ) : (
+                "SIGNUP"
+              )}
             </button>
           </form>
 

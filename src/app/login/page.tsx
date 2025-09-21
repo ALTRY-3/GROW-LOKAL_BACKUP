@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import ImageCarousel from "@/components/ImageCarousel";
 import "./login.css";
@@ -9,6 +10,25 @@ export default function LoginPage() {
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const reset = searchParams?.get('reset');
+    const verified = searchParams?.get('verified');
+    
+    if (reset === 'true') {
+      setSuccessMessage('Password reset successful! You can now log in with your new password.');
+      // Clear the message after 5 seconds
+      setTimeout(() => setSuccessMessage(''), 5000);
+    } else if (verified === 'true') {
+      setSuccessMessage('Email verified successfully! You can now log in.');
+      setTimeout(() => setSuccessMessage(''), 5000);
+    }
+  }, [searchParams]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -16,11 +36,45 @@ export default function LoginPage() {
       ...prev,
       [name]: value,
     }));
+    // Clear errors when user starts typing
+    if (error) setError("");
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Login form submitted:", formData);
+    setError("");
+    setIsLoading(true);
+
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Something went wrong');
+      }
+
+      // Save token to localStorage (you might want to use a more secure method)
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+
+      // Redirect to marketplace
+      window.location.href = '/marketplace';
+
+    } catch (error: any) {
+      setError(error.message || 'Failed to login');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -73,6 +127,20 @@ export default function LoginPage() {
           </div>
 
           <form className="login-form" onSubmit={handleSubmit}>
+            {successMessage && (
+              <div className="success-message">
+                <i className="fas fa-check-circle"></i>
+                {successMessage}
+              </div>
+            )}
+            
+            {error && (
+              <div className="error-message">
+                <i className="fas fa-exclamation-triangle"></i>
+                {error}
+              </div>
+            )}
+
             <div className="input-group">
               <input
                 type="email"
@@ -119,8 +187,15 @@ export default function LoginPage() {
               </Link>
             </div>
 
-            <button type="submit" className="login-button">
-              LOGIN
+            <button type="submit" className="login-button" disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <i className="fas fa-spinner fa-spin"></i>
+                  LOGGING IN...
+                </>
+              ) : (
+                "LOGIN"
+              )}
             </button>
           </form>
 
