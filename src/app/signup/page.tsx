@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
+import { signIn } from "next-auth/react";
 import ImageCarousel from "@/components/ImageCarousel";
 import "./signup.css";
 
@@ -96,17 +98,46 @@ export default function SignupPage() {
     }
   };
 
+  const handleSocialSignup = async (provider: 'google' | 'facebook') => {
+    try {
+      const result = await signIn(provider, { 
+        callbackUrl: '/marketplace',
+        redirect: true 
+      });
+      
+      // If redirect doesn't happen automatically, force it
+      if (result?.ok) {
+        window.location.href = '/marketplace';
+      }
+    } catch (error) {
+      setError(`Failed to sign up with ${provider}`);
+    }
+  };
+
   return (
     <div className="app-container">
       {/* Left Panel */}
       <div className="left-panel">
         <div className="pattern-overlay">
-          <img src="/left-panel.svg" alt="Traditional Pattern" className="left-pattern" />
+          <Image
+            src="/left-panel.svg"
+            alt="Traditional Pattern"
+            className="left-pattern"
+            fill
+            priority
+          />
         </div>
         <div className="left-content">
           <div className="logo-section">
             <div className="logo-icon">
-              <img src="/logo.svg" alt="GrowLokal Logo" className="logo-image" />
+              <Image
+                src="/logo.svg"
+                alt="GrowLokal Logo"
+                className="logo-image"
+                width={40}
+                height={40}
+                priority
+              />
             </div>
             <span className="logo-text">GROWLOKAL</span>
           </div>
@@ -242,11 +273,31 @@ export default function SignupPage() {
           </div>
 
           <div className="social-signup">
-            <button className="social-button facebook">
-              <img src="/facebook.svg" className="social-icon" alt="Facebook" />
+            <button 
+              className="social-button facebook"
+              onClick={() => handleSocialSignup('facebook')}
+              type="button"
+            >
+              <Image
+                src="/facebook.svg"
+                className="social-icon"
+                alt="Facebook"
+                width={20}
+                height={20}
+              />
             </button>
-            <button className="social-button google">
-              <img src="/google.svg" className="social-icon" alt="Google" />
+            <button 
+              className="social-button google"
+              onClick={() => handleSocialSignup('google')}
+              type="button"
+            >
+              <Image
+                src="/google.svg"
+                className="social-icon"
+                alt="Google"
+                width={20}
+                height={20}
+              />
             </button>
           </div>
         </div>

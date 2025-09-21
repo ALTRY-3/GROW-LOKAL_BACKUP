@@ -15,8 +15,8 @@ export default function VerifyEmailPage() {
 
   useEffect(() => {
     const verifyEmail = async () => {
-      const token = searchParams.get('token');
-      const email = searchParams.get('email');
+      const token = searchParams?.get('token');
+      const email = searchParams?.get('email');
 
       if (!token || !email) {
         setStatus('error');

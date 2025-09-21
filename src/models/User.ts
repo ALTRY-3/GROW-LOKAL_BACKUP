@@ -4,12 +4,15 @@ import bcrypt from 'bcryptjs';
 export interface IUser extends mongoose.Document {
   name: string;
   email: string;
-  password: string;
+  password?: string;
   emailVerified: boolean;
   emailVerificationToken: string | null;
   emailVerificationExpires: Date | null;
   passwordResetToken: string | null;
   passwordResetExpires: Date | null;
+  provider: 'email' | 'google' | 'facebook';
+  providerId?: string;
+  image?: string;
   createdAt: Date;
   updatedAt: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
@@ -36,7 +39,9 @@ const UserSchema = new mongoose.Schema<IUser>(
     },
     password: {
       type: String,
-      required: [true, 'Please provide a password'],
+      required: function(this: IUser) {
+        return this.provider === 'email';
+      },
       minlength: [6, 'Password must be at least 6 characters'],
       select: false, // Don't return password by default
     },
@@ -60,6 +65,19 @@ const UserSchema = new mongoose.Schema<IUser>(
       type: Date,
       default: null,
     },
+    provider: {
+      type: String,
+      enum: ['email', 'google', 'facebook'],
+      default: 'email',
+    },
+    providerId: {
+      type: String,
+      default: null,
+    },
+    image: {
+      type: String,
+      default: null,
+    },
   },
   {
     timestamps: true, // Automatically adds createdAt and updatedAt
@@ -68,8 +86,8 @@ const UserSchema = new mongoose.Schema<IUser>(
 
 // Hash password before saving
 UserSchema.pre('save', async function (next) {
-  // Only hash the password if it has been modified (or is new)
-  if (!this.isModified('password')) return next();
+  // Only hash the password if it has been modified (or is new) and exists
+  if (!this.isModified('password') || !this.password) return next();
 
   try {
     // Hash password with cost of 12
@@ -83,6 +101,7 @@ UserSchema.pre('save', async function (next) {
 
 // Instance method to check password
 UserSchema.methods.comparePassword = async function (candidatePassword: string): Promise<boolean> {
+  if (!this.password) return false;
   return bcrypt.compare(candidatePassword, this.password);
 };
 

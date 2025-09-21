@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
+import { signIn, getSession } from "next-auth/react";
 import Link from "next/link";
+import Image from "next/image";
 import ImageCarousel from "@/components/ImageCarousel";
 import "./login.css";
 
@@ -46,34 +48,38 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: formData.email,
-          password: formData.password,
-        }),
+      const result = await signIn('credentials', {
+        email: formData.email,
+        password: formData.password,
+        redirect: false,
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Something went wrong');
+      if (result?.error) {
+        setError('Invalid email or password');
+      } else {
+        // Redirect to marketplace on success
+        window.location.href = '/marketplace';
       }
-
-      // Save token to localStorage (you might want to use a more secure method)
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
-
-      // Redirect to marketplace
-      window.location.href = '/marketplace';
-
     } catch (error: any) {
-      setError(error.message || 'Failed to login');
+      setError('Failed to login');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleSocialLogin = async (provider: 'google' | 'facebook') => {
+    try {
+      const result = await signIn(provider, { 
+        callbackUrl: '/marketplace',
+        redirect: true 
+      });
+      
+      // If redirect doesn't happen automatically, force it
+      if (result?.ok) {
+        window.location.href = '/marketplace';
+      }
+    } catch (error) {
+      setError(`Failed to login with ${provider}`);
     }
   };
 
@@ -82,19 +88,24 @@ export default function LoginPage() {
       {/* Left Panel */}
       <div className="left-panel">
         <div className="pattern-overlay">
-          <img
+          <Image
             src="/left-panel.svg"
             alt="Traditional Pattern"
             className="left-pattern"
+            width={400}
+            height={600}
+            priority
           />
         </div>
         <div className="left-content">
           <div className="logo-section">
             <div className="logo-icon">
-              <img
+              <Image
                 src="/logo.svg"
                 alt="GrowLokal Logo"
                 className="logo-image"
+                width={48}
+                height={48}
               />
             </div>
             <span className="logo-text">GROWLOKAL</span>
@@ -204,15 +215,31 @@ export default function LoginPage() {
           </div>
 
           <div className="social-login">
-            <button className="social-button facebook">
-              <img
+            <button 
+              className="social-button facebook"
+              onClick={() => handleSocialLogin('facebook')}
+              type="button"
+            >
+              <Image
                 src="/facebook.svg"
                 className="social-icon"
                 alt="Facebook"
+                width={20}
+                height={20}
               />
             </button>
-            <button className="social-button google">
-              <img src="/google.svg" className="social-icon" alt="Google" />
+            <button 
+              className="social-button google"
+              onClick={() => handleSocialLogin('google')}
+              type="button"
+            >
+              <Image
+                src="/google.svg"
+                className="social-icon"
+                alt="Google"
+                width={20}
+                height={20}
+              />
             </button>
           </div>
         </div>

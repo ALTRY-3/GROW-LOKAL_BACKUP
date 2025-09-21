@@ -3,6 +3,7 @@ import { Poppins } from "next/font/google";
 import "./globals.css";
 
 import Chatbot from "@/components/Chatbot";
+import AuthProvider from "@/components/AuthProvider";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -31,9 +32,11 @@ export default function RootLayout({
         />
       </head>
       <body className={poppins.className}>
-        {children}
-        {/* Chatbot stays on all pages */}
-        <Chatbot />
+        <AuthProvider>
+          {children}
+          {/* Chatbot stays on all pages */}
+          <Chatbot />
+        </AuthProvider>
       </body>
     </html>
   );

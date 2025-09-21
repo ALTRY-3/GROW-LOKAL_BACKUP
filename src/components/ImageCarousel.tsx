@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 
 interface ImageCarouselProps {
   autoSlide?: boolean;
@@ -34,10 +35,13 @@ export default function ImageCarousel({
   return (
     <>
       <div className="hero-image">
-        <img
+        <Image
           src={images[currentIndex].src}
           alt={images[currentIndex].alt}
           className="craft-image"
+          width={400}
+          height={300}
+          priority
         />
       </div>
 
