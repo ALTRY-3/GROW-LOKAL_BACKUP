@@ -10,8 +10,6 @@ export default function ForgotPasswordPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     alert("If this email exists, a reset link will be sent.");
-    // Here you can redirect to OTP page:
-    // router.push("/otp-verification");
   };
 
   return (
@@ -33,7 +31,7 @@ export default function ForgotPasswordPage() {
           </div>
 
           <form className="login-form" onSubmit={handleSubmit}>
-            <div className="input-group">
+            <div className="input-icon-wrapper">
               <input
                 type="email"
                 name="email"

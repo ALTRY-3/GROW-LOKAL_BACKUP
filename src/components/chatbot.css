@@ -88,10 +88,12 @@
   outline: none;
   background: #2e3f36; 
   color: #ffffff; 
+  font-family: poppins, sans-serif;
 }
 
 .chatbot-input input::placeholder {
   color: rgba(255, 255, 255, 0.7); 
+  font-family: poppins, sans-serif;
 }
 
 .chatbot-send {
