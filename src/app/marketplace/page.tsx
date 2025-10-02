@@ -312,6 +312,38 @@ const beauty: Product[] = [
 
 export default function Marketplace() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [query, setQuery] = useState("");
+  const [suggestions, setSuggestions] = useState<Product[]>([]);
+
+  const allProducts: Product[] = [
+    ...handicrafts,
+    ...fashion,
+    ...home,
+    ...food,
+    ...beauty,
+  ];
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setQuery(value);
+
+    if (value.trim() === "") {
+      setSuggestions([]);
+    } else {
+      const filtered = allProducts.filter(
+        (p) =>
+          p.name.toLowerCase().includes(value.toLowerCase()) ||
+          p.artist.toLowerCase().includes(value.toLowerCase())
+      );
+      setSuggestions(filtered.slice(0, 5)); // show top 5
+    }
+  };
+
+  const handleSuggestionClick = (product: Product) => {
+    setSelectedProduct(product);
+    setQuery("");
+    setSuggestions([]);
+  };
 
   return (
     <div className="marketplace-page">
@@ -324,8 +356,22 @@ export default function Marketplace() {
             className="search-input"
             type="text"
             placeholder="Search for a product or artist"
+            value={query}
+            onChange={handleSearchChange}
           />
         </div>
+
+        {suggestions.length > 0 && (
+          <ul className="suggestions-box">
+            {suggestions.map((product, index) => (
+              <li key={index} onClick={() => handleSuggestionClick(product)}>
+                <img src={product.img} alt={product.name} />
+                <span>{product.name}</span>
+                <span className="suggestion-artist">{product.artist}</span>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       <div className="carousel-section">

@@ -12,7 +12,8 @@ const poppins = Poppins({
 
 export const metadata: Metadata = {
   title: "GrowLokal",
-  description: "A community marketplace for Olongapo’s artisans and entrepreneurs",
+  description:
+    "A community marketplace for Olongapo’s artisans and entrepreneurs",
 };
 
 export default function RootLayout({
@@ -23,7 +24,6 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        {/* FontAwesome for icons */}
         <link
           rel="stylesheet"
           href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"
@@ -34,7 +34,6 @@ export default function RootLayout({
       <body className={poppins.className}>
         <AuthProvider>
           {children}
-          {/* Chatbot stays on all pages */}
           <Chatbot />
         </AuthProvider>
       </body>

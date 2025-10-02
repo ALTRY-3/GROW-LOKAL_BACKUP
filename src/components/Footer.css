@@ -70,3 +70,20 @@
   margin: 0.3rem 0;
   color: #ffffff;
 }
+
+.footer-section.payment .payment-methods {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+  margin-top: 1rem;
+}
+
+.payment-icon {
+  height: 40px;
+  width: auto;
+  object-fit: contain;
+  background: #fff;
+  border-radius: 8px;
+  padding: 4px 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}

@@ -1,8 +1,10 @@
-.search-bar-container {
+.cart-page-wrapper {
+  padding: 24px;
+  background-color: #f8f8f8;
+  min-height: 100vh; 
+  padding-bottom: 140px;
+  box-sizing: border-box;
   width: 100%;
-  display: flex;
-  justify-content: center;
-  margin: 1.5rem 0; 
 }
 
 .search-bar {
@@ -35,6 +37,52 @@
 .search-input::placeholder {
   color: rgba(0, 0, 0, 0.25);
   font-size: 0.9rem;
+}
+
+.suggestions-box {
+  position: absolute;
+  top: 12rem;
+  width: 561px;
+  max-height: 250px;
+  overflow-y: auto;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  z-index: 2000;
+}
+
+.suggestions-box li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.suggestions-box li:hover {
+  background: rgba(175, 121, 40, 0.1); /* soft gold hover */
+}
+
+.suggestions-box img {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 5px;
+}
+
+.suggestions-box span {
+  font-size: 0.9rem;
+  color: #333;
+}
+
+.suggestion-artist {
+  margin-left: auto;
+  font-size: 0.8rem;
+  color: #777;
 }
 
 .carousel-section {
@@ -138,7 +186,7 @@
   justify-content: center;
   color: #fff;
   text-align: center;
-  padding: 0.5rem;
+  padding: 0.1rem;
 }
 
 .product-name {
@@ -463,7 +511,7 @@
   height: 530px;
   border-radius: 5px;
   object-fit: cover;
-  margin-top: 0.10rem;
+  margin-top: -10rem;
 }
 
 .modal-right {
@@ -572,7 +620,7 @@
 .stars {
   display: flex;
   gap: 5px; 
-  margin: 3px 0; 
+  margin: -1px 0; 
 }
 
 .reviews-section p {
@@ -599,6 +647,17 @@
   background-color: #24352c; 
 }
 
+.add-to-cart-btn.added {
+  background-color: #AF7928;
+  color: #fff;
+  font-weight: 600;
+}
+
+.modal-quantity button:hover {
+  background: rgba(0, 0, 0, 0.259); 
+  border-radius: 2px;
+  transition: background 0.2s ease;
+}
 
 .modal-content {
   display: flex;

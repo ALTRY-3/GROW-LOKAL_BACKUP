@@ -11,20 +11,17 @@ export default function Footer() {
         <h3>About GrowLokal</h3>
         <p>
           GrowLokal is a community marketplace connecting Olongapo’s artisans,
-          indigenous communities, and entrepreneurs with the world. We
-          celebrate culture, support sustainable tourism, and empower local
-          economies through digital innovation.
+          indigenous communities, and entrepreneurs with the world. We celebrate
+          culture, support sustainable tourism, and empower local economies
+          through digital innovation.
         </p>
       </div>
 
-      <div className="footer-section links">
-        <h3>Quick Links</h3>
-        <ul>
-          <li><Link href="/marketplace">Marketplace</Link></li>
-          <li><Link href="/stories">Stories</Link></li>
-          <li><Link href="/events">Events</Link></li>
-          <li><Link href="/map">Map</Link></li>
-        </ul>
+      <div className="footer-section payment">
+        <h3>Payment</h3>
+        <div className="payment-methods">
+          <img src="/paymongo.png" alt="PayMongo" className="payment-icon" />
+        </div>
       </div>
 
       <div className="footer-section connect">
@@ -34,8 +31,12 @@ export default function Footer() {
           <FaInstagram />
         </div>
         <div className="contact-info">
-          <p><FaEnvelope /> team.growlokal@gmail.com</p>
-          <p><FaPhone /> +63 912 911 7890</p>
+          <p>
+            <FaEnvelope /> team.growlokal@gmail.com
+          </p>
+          <p>
+            <FaPhone /> +63 912 911 7890
+          </p>
         </div>
       </div>
     </footer>

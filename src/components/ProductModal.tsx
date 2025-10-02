@@ -25,6 +25,14 @@ export default function ProductModal({
   const [hover, setHover] = useState(0);
   const [reviews, setReviews] = useState(0);
 
+  const [added, setAdded] = useState(false);
+
+  const handleAddToCart = () => {
+    setAdded(true);
+
+    setTimeout(() => setAdded(false), 1500);
+  };
+
   const handleRating = (rate: number) => {
     setRating(rate);
     setReviews(reviews + 1);
@@ -94,11 +102,15 @@ export default function ProductModal({
               <p>{reviews > 0 ? `${reviews} review(s)` : "No reviews yet"}</p>
             </div>
 
-            <button className="add-to-cart-btn">Add to Cart</button>
+            <button
+              className={`add-to-cart-btn ${added ? "added" : ""}`}
+              onClick={handleAddToCart}
+            >
+              {added ? "✔ Added to Cart!" : "Add to Cart"}
+            </button>
           </div>
         </div>
 
-        {/* BOTTOM: ABOUT SECTION */}
         <div className="modal-about">
           <h3 className="about-title">About the Product</h3>
           <div className="modal-divider-about"></div>

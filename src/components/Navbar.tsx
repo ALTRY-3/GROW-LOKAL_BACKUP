@@ -53,29 +53,46 @@ export default function Navbar() {
         </div>
 
         <div className="right-content">
+          {/* Notifications */}
           <div className="icon-wrapper" ref={notifRef}>
             <FaBell
               className="nav-icon"
               onClick={() => setShowNotifications(!showNotifications)}
             />
             {showNotifications && (
-              <div className="dropdown dropdown-notifications">
-                <h3 className="dropdown-title">Notifications</h3>
-                <hr className="dropdown-divider" />
-                <p className="dropdown-text">No new notifications</p>
+              <div className="navbar-dropdown navbar-dropdown-notifications">
+                <h3 className="navbar-dropdown-title">Notifications</h3>
+                <hr className="navbar-dropdown-divider" />
+
+                <div className="notification-card">
+                  <p className="notif-text">🎉 Your order has been shipped!</p>
+                  <span className="notif-time">2h ago</span>
+                </div>
+
+                <div className="notification-card">
+                  <p className="notif-text">
+                    🛒 Item added to your cart successfully.
+                  </p>
+                  <span className="notif-time">1d ago</span>
+                </div>
+
+                <div className="notification-card empty">
+                  <p>No new notifications</p>
+                </div>
               </div>
             )}
           </div>
 
+          {/* Cart */}
           <div className="icon-wrapper" ref={cartRef}>
             <FaShoppingCart
               className="nav-icon"
               onClick={() => setShowCart(!showCart)}
             />
             {showCart && (
-              <div className="dropdown dropdown-cart">
-                <h3 className="dropdown-title">Shopping Cart</h3>
-                <hr className="dropdown-divider" />
+              <div className="navbar-dropdown navbar-dropdown-cart">
+                <h3 className="navbar-dropdown-title">Shopping Cart</h3>
+                <hr className="navbar-dropdown-divider" />
 
                 <div className="cart-item">
                   <img
@@ -97,29 +114,38 @@ export default function Navbar() {
                   />
                   <div className="cart-item-info">
                     <p className="cart-item-name">Skin Care Soap</p>
-                    <p className="cart-item-price">₱259.000</p>
+                    <p className="cart-item-price">₱259.00</p>
                   </div>
                 </div>
 
-                <hr className="dropdown-divider" />
-                <button className="cart-checkout-btn">GO TO CART</button>
+                <hr className="navbar-dropdown-divider" />
+                <Link href="/cart">
+                  <button className="cart-checkout-btn">GO TO CART</button>
+                </Link>
               </div>
             )}
           </div>
 
+          {/* Profile */}
           <div className="icon-wrapper" ref={profileRef}>
             <FaUserCircle
               className="nav-icon"
               onClick={() => setShowProfile(!showProfile)}
             />
             {showProfile && (
-              <div className="dropdown dropdown-profile">
-                <h3 className="dropdown-title">Profile</h3>
-                <hr className="dropdown-divider" />
+              <div className="navbar-dropdown navbar-dropdown-profile">
+                <h3 className="navbar-dropdown-title">Profile</h3>
+                <hr className="navbar-dropdown-divider" />
                 <ul className="profile-menu">
-                  <li>My Account</li>
-                  <li>My Orders</li>
-                  <li>Logout</li>
+                  <li>
+                    <Link href="/profile?section=profile">My Account</Link>
+                  </li>
+                  <li>
+                    <Link href="/profile?section=orders">My Orders</Link>
+                  </li>
+                  <li>
+                    <Link href="/login">Logout</Link>
+                  </li>
                 </ul>
               </div>
             )}
