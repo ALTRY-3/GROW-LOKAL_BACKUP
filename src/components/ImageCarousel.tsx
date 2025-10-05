@@ -39,8 +39,8 @@ export default function ImageCarousel({
           src={images[currentIndex].src}
           alt={images[currentIndex].alt}
           className="craft-image"
-          width={400}
-          height={300}
+          fill
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 400px"
           priority
         />
       </div>

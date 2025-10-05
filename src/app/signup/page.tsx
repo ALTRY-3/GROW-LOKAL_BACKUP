@@ -1,10 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { signIn } from "next-auth/react";
+import { signIn, useSession } from "next-auth/react";
 import ImageCarousel from "@/components/ImageCarousel";
+import PasswordStrengthMeter from "@/components/PasswordStrengthMeter";
+import { useRecaptcha } from "@/lib/useRecaptcha";
+import { useCsrfToken, getCsrfHeaders } from "@/lib/useCsrfToken";
+import { getFriendlyErrorMessage } from "@/lib/authErrors";
+import type { PasswordStrength } from "@/lib/passwordPolicy";
 import "./signup.css";
 
 export default function SignupPage() {
@@ -22,6 +28,49 @@ export default function SignupPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [devVerificationLink, setDevVerificationLink] = useState<string | null>(null);
+  const [passwordStrength, setPasswordStrength] = useState<PasswordStrength | null>(null);
+  const [isPasswordBreached, setIsPasswordBreached] = useState(false);
+  const [socialLoading, setSocialLoading] = useState<string | null>(null);
+  const [isPasswordFocused, setIsPasswordFocused] = useState(false);
+  
+  const { getToken, error: recaptchaError } = useRecaptcha();
+  const { csrfToken, loading: csrfLoading } = useCsrfToken();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { data: session, status } = useSession();
+
+  // Redirect authenticated users to marketplace
+  useEffect(() => {
+    if (status === "authenticated") {
+      router.push("/marketplace");
+    }
+  }, [status, router]);
+
+  // Check for OAuth errors in URL
+  useEffect(() => {
+    const urlError = searchParams?.get('error');
+    if (urlError) {
+      setError(getFriendlyErrorMessage(urlError));
+    }
+  }, [searchParams]);
+
+  // Show loading state while checking authentication
+  if (status === "loading") {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <div style={{ textAlign: 'center' }}>
+          <i className="fas fa-spinner fa-spin" style={{ fontSize: '48px', color: '#4CAF50' }}></i>
+          <p style={{ marginTop: '20px' }}>Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render form if user is authenticated (will redirect)
+  if (status === "authenticated") {
+    return null;
+  }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -49,15 +98,29 @@ export default function SignupPage() {
       return;
     }
 
-    if (formData.password.length < 6) {
-      setError("Password must be at least 6 characters long");
+    // Check password strength
+    if (!passwordStrength || passwordStrength.score < 2) {
+      setError("Please choose a stronger password");
+      return;
+    }
+
+    // Warn about breached passwords
+    if (isPasswordBreached) {
+      setError("This password has been found in a data breach. Please choose a different password.");
       return;
     }
 
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/auth/register', {
+      // Get reCAPTCHA token
+      const recaptchaToken = await getToken('signup');
+      
+      if (!recaptchaToken && process.env.NODE_ENV !== 'development') {
+        throw new Error('Security verification failed. Please try again.');
+      }
+
+      const response = await fetch('/api/auth/register', getCsrfHeaders(csrfToken, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -66,8 +129,9 @@ export default function SignupPage() {
           name: formData.fullName,
           email: formData.email,
           password: formData.password,
+          recaptchaToken,
         }),
-      });
+      }));
 
       const data = await response.json();
 
@@ -79,38 +143,47 @@ export default function SignupPage() {
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
 
-      setSuccess("Account created successfully! Please check your email for a verification link.");
-      
       // Store development link if provided
       if (data.developmentLink) {
+        setDevVerificationLink(data.developmentLink);
         console.log('Development verification link:', data.developmentLink);
       }
 
-      // Don't auto-redirect - let user check email first
+      // Show success message and redirect to login
+      setSuccess("Account created successfully! Please check your email to verify your account.");
+      
+      // Redirect to login page after 2 seconds
       setTimeout(() => {
-        setSuccess("Account created! Check your email to verify your account before logging in.");
-      }, 3000);
+        router.push('/login');
+      }, 2000);
 
     } catch (error: any) {
-      setError(error.message || 'Failed to create account');
+      setError(getFriendlyErrorMessage(error.message || error));
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleSocialSignup = async (provider: 'google' | 'facebook') => {
+    if (socialLoading || isLoading) return; // Prevent double submit
+    
+    setSocialLoading(provider);
+    setError(""); // Clear previous errors
     try {
       const result = await signIn(provider, { 
         callbackUrl: '/marketplace',
-        redirect: true 
+        redirect: false 
       });
       
-      // If redirect doesn't happen automatically, force it
-      if (result?.ok) {
+      if (result?.error) {
+        setError(getFriendlyErrorMessage(result.error));
+        setSocialLoading(null);
+      } else if (result?.ok) {
         window.location.href = '/marketplace';
       }
-    } catch (error) {
-      setError(`Failed to sign up with ${provider}`);
+    } catch (error: any) {
+      setError(getFriendlyErrorMessage(error?.message || error));
+      setSocialLoading(null);
     }
   };
 
@@ -124,7 +197,9 @@ export default function SignupPage() {
             alt="Traditional Pattern"
             className="left-pattern"
             fill
+            sizes="(max-width: 768px) 100vw, 50vw"
             priority
+            unoptimized
           />
         </div>
         <div className="left-content">
@@ -169,10 +244,10 @@ export default function SignupPage() {
           </div>
 
           <form className="signup-form" onSubmit={handleSubmit}>
-            {error && (
+            {(error || recaptchaError) && (
               <div className="error-message">
                 <i className="fas fa-exclamation-triangle"></i>
-                {error}
+                {error || recaptchaError}
               </div>
             )}
             
@@ -217,6 +292,8 @@ export default function SignupPage() {
                 className="form-input"
                 value={formData.password}
                 onChange={handleInputChange}
+                onFocus={() => setIsPasswordFocused(true)}
+                onBlur={() => setIsPasswordFocused(false)}
                 required
               />
               <i
@@ -224,6 +301,18 @@ export default function SignupPage() {
                 onClick={() => setShowPassword(!showPassword)}
               ></i>
             </div>
+
+            {/* Password Strength Meter - only shown when password field is focused */}
+            {formData.password && isPasswordFocused && (
+              <PasswordStrengthMeter
+                password={formData.password}
+                checkBreaches={true}
+                onChange={(strength, breached) => {
+                  setPasswordStrength(strength);
+                  setIsPasswordBreached(breached || false);
+                }}
+              />
+            )}
 
             <div className="input-group">
               <input
@@ -256,7 +345,7 @@ export default function SignupPage() {
               </label>
             </div>
 
-            <button type="submit" className="signup-button" disabled={isLoading}>
+            <button type="submit" className="signup-button" disabled={isLoading || socialLoading !== null}>
               {isLoading ? (
                 <>
                   <i className="fas fa-spinner fa-spin"></i>
@@ -277,27 +366,39 @@ export default function SignupPage() {
               className="social-button facebook"
               onClick={() => handleSocialSignup('facebook')}
               type="button"
+              disabled={isLoading || socialLoading !== null}
+              style={{ opacity: socialLoading === 'facebook' || (socialLoading && socialLoading !== 'facebook') ? 0.6 : 1, cursor: (isLoading || socialLoading !== null) ? 'not-allowed' : 'pointer' }}
             >
-              <Image
-                src="/facebook.svg"
-                className="social-icon"
-                alt="Facebook"
-                width={20}
-                height={20}
-              />
+              {socialLoading === 'facebook' ? (
+                <i className="fas fa-spinner fa-spin"></i>
+              ) : (
+                <Image
+                  src="/facebook.svg"
+                  className="social-icon"
+                  alt="Facebook"
+                  width={20}
+                  height={20}
+                />
+              )}
             </button>
             <button 
               className="social-button google"
               onClick={() => handleSocialSignup('google')}
               type="button"
+              disabled={isLoading || socialLoading !== null}
+              style={{ opacity: socialLoading === 'google' || (socialLoading && socialLoading !== 'google') ? 0.6 : 1, cursor: (isLoading || socialLoading !== null) ? 'not-allowed' : 'pointer' }}
             >
-              <Image
-                src="/google.svg"
-                className="social-icon"
-                alt="Google"
-                width={20}
-                height={20}
-              />
+              {socialLoading === 'google' ? (
+                <i className="fas fa-spinner fa-spin"></i>
+              ) : (
+                <Image
+                  src="/google.svg"
+                  className="social-icon"
+                  alt="Google"
+                  width={20}
+                  height={20}
+                />
+              )}
             </button>
           </div>
         </div>

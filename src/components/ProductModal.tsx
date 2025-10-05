@@ -1,17 +1,17 @@
 "use client";
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState } from "react";
 import { FaTimes, FaStar } from "react-icons/fa";
 import Link from "next/link";
-import { useCart } from "@/app/context/CartContext";
+import { useCartStore } from "@/store/cartStore";
 
 interface Product {
-  id: number;
   img: string;
   hoverImg: string;
   name: string;
   artist: string;
   price: string;
-  storyId?: string;
+  productId?: string; // Optional: for add to cart functionality
+  maxStock?: number; // Optional: for stock limit
 }
 
 export default function ProductModal({
@@ -23,203 +23,131 @@ export default function ProductModal({
 }) {
   const [mainImage, setMainImage] = useState(product.img);
   const [quantity, setQuantity] = useState(1);
+  const [adding, setAdding] = useState(false);
+  const [addSuccess, setAddSuccess] = useState(false);
 
   const [rating, setRating] = useState(0);
   const [hover, setHover] = useState(0);
   const [reviews, setReviews] = useState(0);
 
-  const [added, setAdded] = useState(false);
-
-  const { addToCart } = useCart();
-
-  const modalRef = useRef<HTMLDivElement>(null);
-  const closeBtnRef = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    const originalBodyOverflow = document.body.style.overflow;
-    const originalHtmlOverflow = document.documentElement.style.overflow;
-    document.body.style.overflow = "hidden";
-    document.documentElement.style.overflow = "hidden";
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        onClose();
-      }
-      if (e.key === "Tab" && modalRef.current) {
-        const focusable = modalRef.current.querySelectorAll<HTMLElement>(
-          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-        );
-        const first = focusable[0];
-        const last = focusable[focusable.length - 1];
-
-        if (!e.shiftKey && document.activeElement === last) {
-          e.preventDefault();
-          first.focus();
-        }
-        if (e.shiftKey && document.activeElement === first) {
-          e.preventDefault();
-          last.focus();
-        }
-      }
-    };
-
-    document.addEventListener("keydown", handleKeyDown);
-    closeBtnRef.current?.focus();
-
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-      document.body.style.overflow = originalBodyOverflow;
-      document.documentElement.style.overflow = originalHtmlOverflow;
-    };
-  }, [onClose]);
-
-  const handleAddToCart = () => {
-    addToCart({
-      ...product,
-      id: product.id.toString(),
-      price: parseFloat(product.price.replace(/[₱,]/g, "")),
-      quantity,
-    });
-
-    setAdded(true);
-    setTimeout(() => setAdded(false), 1500);
-  };
+  const { addItem } = useCartStore();
 
   const handleRating = (rate: number) => {
     setRating(rate);
     setReviews(reviews + 1);
   };
 
+  const handleAddToCart = async () => {
+    if (!product.productId) {
+      alert('Cannot add this product to cart');
+      return;
+    }
+
+    setAdding(true);
+    try {
+      await addItem(product.productId, quantity);
+      setAddSuccess(true);
+      
+      // Show success for 2 seconds
+      setTimeout(() => {
+        setAddSuccess(false);
+        onClose(); // Close modal after adding
+      }, 1500);
+    } catch (error: any) {
+      alert(error.message || 'Failed to add to cart');
+    } finally {
+      setAdding(false);
+    }
+  };
+
+  const maxStock = product.maxStock || 99;
+
   return (
-    <div
-      className="modal-overlay"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="modal-title"
-      aria-describedby="modal-desc"
-    >
-      <div className="modal-box" ref={modalRef}>
-        <button
-          className="modal-close"
-          onClick={onClose}
-          aria-label="Close product details"
-          ref={closeBtnRef}
-        >
-          <FaTimes aria-hidden="true" />
+    <div className="modal-overlay">
+      <div className="modal-box">
+        <button className="modal-close" onClick={onClose}>
+          <FaTimes />
         </button>
 
         <div className="modal-content">
           <div className="modal-left">
-            <div className="modal-thumbs" role="list">
+            <div className="modal-thumbs">
               <img
                 src={product.img}
-                alt={`Thumbnail of ${product.name}`}
+                alt={product.name}
                 className={mainImage === product.img ? "active" : ""}
                 onClick={() => setMainImage(product.img)}
-                role="listitem"
-                tabIndex={0}
               />
               <img
                 src={product.hoverImg}
-                alt={`Alternate view of ${product.name}`}
+                alt={product.name}
                 className={mainImage === product.hoverImg ? "active" : ""}
                 onClick={() => setMainImage(product.hoverImg)}
-                role="listitem"
-                tabIndex={0}
               />
             </div>
             <div className="modal-main">
-              <img
-                src={mainImage}
-                alt={`Main view of ${product.name} by ${product.artist}`}
-              />
+              <img src={mainImage} alt={product.name} />
             </div>
           </div>
 
           <div className="modal-right">
-            <h2 id="modal-title" className="modal-artist">
-              {product.artist}
-            </h2>
-            {product.storyId && (
-              <Link
-                href={`/artiststory/${product.storyId}`}
-                className="artist-story-btn"
-                aria-label={`Read story about artist ${product.artist}`}
-              >
-                <i>View Artist Story</i>
-              </Link>
-            )}
-
+            <h2 className="modal-artist">{product.artist}</h2>
+            <Link href="/stories" className="artist-story-btn">
+              <i>Artist Story Available</i>
+            </Link>
             <h3 className="modal-product-name">{product.name}</h3>
             <p className="modal-price">{product.price}</p>
             <div className="modal-divider"></div>
 
-            <label htmlFor="quantity-control" className="modal-quantity-label">
-              Quantity
-            </label>
-            <div
-              className="modal-quantity"
-              id="quantity-control"
-              role="group"
-              aria-label="Select quantity"
-            >
-              <button
-                onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                aria-label="Decrease quantity"
-              >
+            <p className="modal-quantity-label">QUANTITY</p>
+            <div className="modal-quantity">
+              <button onClick={() => setQuantity(Math.max(1, quantity - 1))}>
                 -
               </button>
-              <span aria-live="polite">{quantity}</span>
-              <button
-                onClick={() => setQuantity(quantity + 1)}
-                aria-label="Increase quantity"
+              <span>{quantity}</span>
+              <button 
+                onClick={() => setQuantity(Math.min(maxStock, quantity + 1))}
+                disabled={quantity >= maxStock}
               >
                 +
               </button>
             </div>
 
-            <p className="modal-review-title">Customer Reviews</p>
+            <p className="modal-review-title">CUSTOMER REVIEWS</p>
             <div className="reviews-section">
-              <div
-                className="stars"
-                role="radiogroup"
-                aria-label="Rate this product"
-              >
+              <div className="stars">
                 {[1, 2, 3, 4, 5].map((star) => (
-                  <button
+                  <FaStar
                     key={star}
-                    type="button"
-                    className="star-btn"
+                    size={24}
+                    style={{ cursor: "pointer" }}
+                    color={star <= (hover || rating) ? "#FFD700" : "#e4e5e9"}
                     onClick={() => handleRating(star)}
                     onMouseEnter={() => setHover(star)}
                     onMouseLeave={() => setHover(rating)}
-                    aria-label={`${star} star rating`}
-                    aria-pressed={rating === star}
-                  >
-                    <FaStar
-                      size={24}
-                      color={star <= (hover || rating) ? "#FFD700" : "#e4e5e9"}
-                      aria-hidden="true"
-                    />
-                  </button>
+                  />
                 ))}
               </div>
-              <p aria-live="polite">
-                {reviews > 0 ? `${reviews} review(s)` : "No reviews yet"}
-              </p>
+              <p>{reviews > 0 ? `${reviews} review(s)` : "No reviews yet"}</p>
             </div>
 
-            <button
-              className={`add-to-cart-btn ${added ? "added" : ""}`}
+            <button 
+              className="add-to-cart-btn"
               onClick={handleAddToCart}
-              aria-label={`Add ${product.name} to cart`}
+              disabled={adding || !product.productId || addSuccess}
+              style={{
+                backgroundColor: addSuccess ? '#10b981' : undefined,
+                cursor: (adding || !product.productId) ? 'not-allowed' : 'pointer',
+                opacity: (adding || !product.productId) ? 0.6 : 1
+              }}
             >
-              {added ? "✔ Added to Cart!" : "Add to Cart"}
+              {adding ? 'Adding...' : addSuccess ? '✓ Added!' : 'Add to Cart'}
             </button>
           </div>
         </div>
 
-        <div className="modal-about" id="modal-desc">
+        {/* BOTTOM: ABOUT SECTION */}
+        <div className="modal-about">
           <h3 className="about-title">About the Product</h3>
           <div className="modal-divider-about"></div>
 
@@ -231,8 +159,8 @@ export default function ProductModal({
               (unframed).
               <br />
               Images are not representative of the actual work or condition; for
-              full information, request a condition report at{" "}
-              <b>specialist@artsy.net</b>.
+              full information on the condition of this work, request a
+              condition report by emailing <b>specialist@artsy.net</b>.
             </p>
           </div>
 

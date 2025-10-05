@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
-import { signIn, getSession } from "next-auth/react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { signIn, useSession } from "next-auth/react";
 import Link from "next/link";
 import Image from "next/image";
 import ImageCarousel from "@/components/ImageCarousel";
+import ResendVerification from "@/components/ResendVerification";
+import { getFriendlyErrorMessage, isVerificationError } from "@/lib/authErrors";
 import "./login.css";
 
 export default function LoginPage() {
@@ -15,24 +17,54 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [showResendVerification, setShowResendVerification] = useState(false);
+  const [socialLoading, setSocialLoading] = useState<string | null>(null);
 
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const { data: session, status } = useSession();
+
+  // Redirect authenticated users to marketplace
+  useEffect(() => {
+    if (status === "authenticated") {
+      router.push("/marketplace");
+    }
+  }, [status, router]);
 
   useEffect(() => {
-    const reset = searchParams?.get("reset");
-    const verified = searchParams?.get("verified");
-
-    if (reset === "true") {
-      setSuccessMessage(
-        "Password reset successful! You can now log in with your new password."
-      );
+    const reset = searchParams?.get('reset');
+    const verified = searchParams?.get('verified');
+    const urlError = searchParams?.get('error');
+    
+    if (reset === 'true') {
+      setSuccessMessage('Password reset successful! You can now log in with your new password.');
       // Clear the message after 5 seconds
-      setTimeout(() => setSuccessMessage(""), 5000);
-    } else if (verified === "true") {
-      setSuccessMessage("Email verified successfully! You can now log in.");
-      setTimeout(() => setSuccessMessage(""), 5000);
+      setTimeout(() => setSuccessMessage(''), 5000);
+    } else if (verified === 'true') {
+      setSuccessMessage('Email verified successfully! You can now log in.');
+      setTimeout(() => setSuccessMessage(''), 5000);
+    } else if (urlError) {
+      // Handle NextAuth errors from URL parameters
+      setError(getFriendlyErrorMessage(urlError));
     }
   }, [searchParams]);
+
+  // Show loading state while checking authentication
+  if (status === "loading") {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <div style={{ textAlign: 'center' }}>
+          <i className="fas fa-spinner fa-spin" style={{ fontSize: '48px', color: '#4CAF50' }}></i>
+          <p style={{ marginTop: '20px' }}>Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render form if user is authenticated (will redirect)
+  if (status === "authenticated") {
+    return null;
+  }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -50,38 +82,53 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      const result = await signIn("credentials", {
+      const result = await signIn('credentials', {
         email: formData.email,
         password: formData.password,
+        rememberMe: rememberMe,
         redirect: false,
       });
 
       if (result?.error) {
-        setError("Invalid email or password");
-      } else {
+        // Use friendly error messages
+        const friendlyError = getFriendlyErrorMessage(result.error);
+        setError(friendlyError);
+        
+        // Show resend verification if it's a verification error
+        if (isVerificationError(result.error)) {
+          setShowResendVerification(true);
+        }
+      } else if (result?.ok) {
         // Redirect to marketplace on success
-        window.location.href = "/marketplace";
+        window.location.href = '/marketplace';
       }
     } catch (error: any) {
-      setError("Failed to login");
+      setError(getFriendlyErrorMessage(error?.message || error));
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleSocialLogin = async (provider: "google" | "facebook") => {
+  const handleSocialLogin = async (provider: 'google' | 'facebook') => {
+    if (socialLoading || isLoading) return; // Prevent double submit
+    
+    setSocialLoading(provider);
+    setError(""); // Clear previous errors
     try {
-      const result = await signIn(provider, {
-        callbackUrl: "/marketplace",
-        redirect: true,
+      const result = await signIn(provider, { 
+        callbackUrl: '/marketplace',
+        redirect: false 
       });
-
-      // If redirect doesn't happen automatically, force it
-      if (result?.ok) {
-        window.location.href = "/marketplace";
+      
+      if (result?.error) {
+        setError(getFriendlyErrorMessage(result.error));
+        setSocialLoading(null);
+      } else if (result?.ok) {
+        window.location.href = '/marketplace';
       }
-    } catch (error) {
-      setError(`Failed to login with ${provider}`);
+    } catch (error: any) {
+      setError(getFriendlyErrorMessage(error?.message || error));
+      setSocialLoading(null);
     }
   };
 
@@ -94,9 +141,10 @@ export default function LoginPage() {
             src="/left-panel.svg"
             alt="Traditional Pattern"
             className="left-pattern"
-            width={400}
-            height={600}
+            fill
+            sizes="(max-width: 768px) 100vw, 50vw"
             priority
+            unoptimized
           />
         </div>
         <div className="left-content">
@@ -146,11 +194,27 @@ export default function LoginPage() {
                 {successMessage}
               </div>
             )}
-
+            
             {error && (
               <div className="error-message">
                 <i className="fas fa-exclamation-triangle"></i>
                 {error}
+                {showResendVerification && formData.email && (
+                  <div style={{ marginTop: '10px' }}>
+                    <ResendVerification
+                      email={formData.email}
+                      onSuccess={(message, devLink) => {
+                        setSuccessMessage(message);
+                        setShowResendVerification(false);
+                        if (devLink) {
+                          console.log('Development verification link:', devLink);
+                        }
+                      }}
+                      onError={(err) => setError(err)}
+                      className="resend-btn"
+                    />
+                  </div>
+                )}
               </div>
             )}
 
@@ -200,7 +264,7 @@ export default function LoginPage() {
               </Link>
             </div>
 
-            <button type="submit" className="login-button" disabled={isLoading}>
+            <button type="submit" className="login-button" disabled={isLoading || socialLoading !== null}>
               {isLoading ? (
                 <>
                   <i className="fas fa-spinner fa-spin"></i>
@@ -217,31 +281,43 @@ export default function LoginPage() {
           </div>
 
           <div className="social-login">
-            <button
+            <button 
               className="social-button facebook"
-              onClick={() => handleSocialLogin("facebook")}
+              onClick={() => handleSocialLogin('facebook')}
               type="button"
+              disabled={isLoading || socialLoading !== null}
+              style={{ opacity: socialLoading === 'facebook' || (socialLoading && socialLoading !== 'facebook') ? 0.6 : 1 }}
             >
-              <Image
-                src="/facebook.svg"
-                className="social-icon"
-                alt="Facebook"
-                width={20}
-                height={20}
-              />
+              {socialLoading === 'facebook' ? (
+                <i className="fas fa-spinner fa-spin"></i>
+              ) : (
+                <Image
+                  src="/facebook.svg"
+                  className="social-icon"
+                  alt="Facebook"
+                  width={20}
+                  height={20}
+                />
+              )}
             </button>
-            <button
+            <button 
               className="social-button google"
-              onClick={() => handleSocialLogin("google")}
+              onClick={() => handleSocialLogin('google')}
               type="button"
+              disabled={isLoading || socialLoading !== null}
+              style={{ opacity: socialLoading === 'google' || (socialLoading && socialLoading !== 'google') ? 0.6 : 1 }}
             >
-              <Image
-                src="/google.svg"
-                className="social-icon"
-                alt="Google"
-                width={20}
-                height={20}
-              />
+              {socialLoading === 'google' ? (
+                <i className="fas fa-spinner fa-spin"></i>
+              ) : (
+                <Image
+                  src="/google.svg"
+                  className="social-icon"
+                  alt="Google"
+                  width={20}
+                  height={20}
+                />
+              )}
             </button>
           </div>
         </div>

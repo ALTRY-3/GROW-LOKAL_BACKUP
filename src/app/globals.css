@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -23,11 +25,13 @@ body {
   box-sizing: border-box;
 }
 
+/* Global override for browser validation styling */
 input:invalid,
 input:valid {
   box-shadow: none !important;
 }
 
+/* Remove default focus outlines on links and buttons */
 a:focus,
 a:active,
 button:focus,
@@ -42,6 +46,7 @@ a {
   text-decoration: none;
 }
 
+/* WebKit (Chrome, Edge, Safari) */
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
@@ -62,4 +67,17 @@ a {
 * {
   scrollbar-width: thin;
   scrollbar-color: #c6882b #D9D9D9;
+}
+
+/* reCAPTCHA badge styling */
+.grecaptcha-badge {
+  visibility: visible !important;
+  opacity: 1 !important;
+  z-index: 9999 !important;
+}
+
+/* Ensure reCAPTCHA iframe is visible */
+iframe[src*="recaptcha"] {
+  visibility: visible !important;
+  opacity: 1 !important;
 }

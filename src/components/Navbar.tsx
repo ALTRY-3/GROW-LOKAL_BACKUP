@@ -2,21 +2,31 @@
 
 import { useState, useEffect, useRef } from "react";
 import { FaBell, FaShoppingCart, FaUserCircle } from "react-icons/fa";
-import { useCart } from "@/app/context/CartContext";
+import { signOut, useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useCartStore } from "@/store/cartStore";
+import ConfirmDialog from "./ConfirmDialog";
 import "./Navbar.css";
 
 export default function Navbar() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showCart, setShowCart] = useState(false);
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
+  const { data: session } = useSession();
+  const router = useRouter();
+  const { items, subtotal, itemCount, fetchCart, removeItem } = useCartStore();
   const notifRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
   const cartRef = useRef<HTMLDivElement>(null);
 
-  const { cartCount, cartItems } = useCart();
-  const [popCart, setPopCart] = useState(false);
+  // Fetch cart on mount
+  useEffect(() => {
+    fetchCart();
+  }, [fetchCart]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -40,6 +50,31 @@ export default function Navbar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const handleLogoutClick = () => {
+    setShowProfile(false);
+    setShowLogoutDialog(true);
+  };
+
+  const handleLogout = async () => {
+    try {
+      setIsLoggingOut(true);
+      
+      // Sign out using NextAuth
+      await signOut({ 
+        redirect: true,
+        callbackUrl: '/login'
+      });
+      
+      // Clear any local storage items
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+    } catch (error) {
+      console.error('Logout error:', error);
+      setIsLoggingOut(false);
+      setShowLogoutDialog(false);
+    }
+  };
+
   return (
     <div className="marketplace-page">
       <header className="navbar">
@@ -57,122 +92,130 @@ export default function Navbar() {
         </div>
 
         <div className="right-content">
-          {/* Notifications */}
           <div className="icon-wrapper" ref={notifRef}>
             <FaBell
               className="nav-icon"
-              aria-label="Notifications"
               onClick={() => setShowNotifications(!showNotifications)}
             />
             {showNotifications && (
-              <div className="navbar-dropdown navbar-dropdown-notifications">
-                <h3 className="navbar-dropdown-title">Notifications</h3>
-                <hr className="navbar-dropdown-divider" />
-
-                <div className="notification-card">
-                  <p className="notif-text">🎉 Your order has been shipped!</p>
-                  <span className="notif-time">2h ago</span>
-                </div>
-
-                <div className="notification-card">
-                  <p className="notif-text">
-                    🛒 Item added to your cart successfully.
-                  </p>
-                  <span className="notif-time">1d ago</span>
-                </div>
-
-                <div className="notification-card empty">
-                  <p>No new notifications</p>
-                </div>
+              <div className="dropdown dropdown-notifications">
+                <h3 className="dropdown-title">Notifications</h3>
+                <hr className="dropdown-divider" />
+                <p className="dropdown-text">No new notifications</p>
               </div>
             )}
           </div>
 
-          {/* Cart */}
           <div className="icon-wrapper" ref={cartRef}>
-            <FaShoppingCart
-              className="nav-icon"
-              aria-label="Shopping Cart"
-              onClick={() => setShowCart(!showCart)}
-            />
-            {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
-
+            <div style={{ position: 'relative', display: 'inline-block' }}>
+              <FaShoppingCart
+                className="nav-icon"
+                onClick={() => setShowCart(!showCart)}
+              />
+              {itemCount > 0 && (
+                <span 
+                  style={{
+                    position: 'absolute',
+                    top: '-8px',
+                    right: '-8px',
+                    backgroundColor: '#ff4444',
+                    color: 'white',
+                    borderRadius: '50%',
+                    width: '20px',
+                    height: '20px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '12px',
+                    fontWeight: 'bold',
+                  }}
+                >
+                  {itemCount > 99 ? '99+' : itemCount}
+                </span>
+              )}
+            </div>
             {showCart && (
-              <div className="navbar-dropdown navbar-dropdown-cart">
-                <h3 className="navbar-dropdown-title">Shopping Cart</h3>
-                <hr className="navbar-dropdown-divider" />
+              <div className="dropdown dropdown-cart">
+                <h3 className="dropdown-title">Shopping Cart</h3>
+                <hr className="dropdown-divider" />
 
-                {cartItems && cartItems.length > 0 ? (
+                {items.length === 0 ? (
+                  <p className="dropdown-text">Your cart is empty</p>
+                ) : (
                   <>
-                    {cartItems.slice(0, 5).map((item, index) => (
-                      <div className="cart-item" key={index}>
-                        <img
-                          src={item.img}
-                          alt={item.name}
-                          className="cart-item-image"
-                        />
-                        <div className="cart-item-info">
-                          <p className="cart-item-name">{item.name}</p>
-                          <div className="cart-item-meta">
-                            <p className="cart-item-price">₱{item.price}</p>
-                            <p className="cart-item-quantity">
-                              x {item.quantity}
+                    <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                      {items.map((item) => (
+                        <div key={item.productId} className="cart-item">
+                          <img
+                            src={item.image}
+                            alt={item.name}
+                            className="cart-item-image"
+                          />
+                          <div className="cart-item-info">
+                            <p className="cart-item-name">{item.name}</p>
+                            <p className="cart-item-price">
+                              ₱{item.price.toFixed(2)} x {item.quantity}
                             </p>
                           </div>
+                          <button
+                            onClick={() => removeItem(item.productId)}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: '#ff4444',
+                              cursor: 'pointer',
+                              fontSize: '18px',
+                              padding: '0 5px',
+                            }}
+                            title="Remove item"
+                          >
+                            ×
+                          </button>
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
 
-                    {cartItems.length > 5 && (
-                      <p className="cart-more">
-                        {cartItems
-                          .slice(5)
-                          .reduce(
-                            (total, item) => total + item.quantity,
-                            0
-                          )}{" "}
-                        more product
-                        {cartItems
-                          .slice(5)
-                          .reduce((total, item) => total + item.quantity, 0) > 1
-                          ? "s"
-                          : ""}{" "}
-                        in cart
-                      </p>
-                    )}
+                    <hr className="dropdown-divider" />
+                    <div style={{ padding: '10px 0', fontWeight: 'bold' }}>
+                      Subtotal: ₱{subtotal.toFixed(2)}
+                    </div>
                   </>
-                ) : (
-                  <p className="empty-cart">Your cart is empty</p>
                 )}
 
-                <Link href="/cart">
-                  <button className="cart-checkout-btn">GO TO CART</button>
-                </Link>
+                <button 
+                  className="cart-checkout-btn"
+                  onClick={() => {
+                    setShowCart(false);
+                    router.push('/cart');
+                  }}
+                  disabled={items.length === 0}
+                  style={{
+                    opacity: items.length === 0 ? 0.5 : 1,
+                    cursor: items.length === 0 ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  GO TO CART
+                </button>
               </div>
             )}
           </div>
 
-          {/* Profile */}
           <div className="icon-wrapper" ref={profileRef}>
             <FaUserCircle
               className="nav-icon"
-              aria-label="Profile"
               onClick={() => setShowProfile(!showProfile)}
             />
             {showProfile && (
-              <div className="navbar-dropdown navbar-dropdown-profile">
-                <h3 className="navbar-dropdown-title">Profile</h3>
-                <hr className="navbar-dropdown-divider" />
+              <div className="dropdown dropdown-profile">
+                <h3 className="dropdown-title">Profile</h3>
+                {session?.user?.name && (
+                  <p className="dropdown-user-name">{session.user.name}</p>
+                )}
+                <hr className="dropdown-divider" />
                 <ul className="profile-menu">
-                  <li>
-                    <Link href="/profile?section=profile">My Account</Link>
-                  </li>
-                  <li>
-                    <Link href="/profile?section=orders">My Orders</Link>
-                  </li>
-                  <li>
-                    <Link href="/login">Logout</Link>
-                  </li>
+                  <li>My Account</li>
+                  <li>My Orders</li>
+                  <li onClick={handleLogoutClick}>Logout</li>
                 </ul>
               </div>
             )}
@@ -204,6 +247,17 @@ export default function Navbar() {
           className="nav-strip-image"
         />
       </div>
+
+      <ConfirmDialog
+        isOpen={showLogoutDialog}
+        title="Confirm Logout"
+        message="Are you sure you want to log out? You will be redirected to the login page."
+        confirmText="Logout"
+        cancelText="Cancel"
+        onConfirm={handleLogout}
+        onCancel={() => setShowLogoutDialog(false)}
+        isLoading={isLoggingOut}
+      />
     </div>
   );
 }

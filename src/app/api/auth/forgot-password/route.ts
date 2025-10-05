@@ -2,11 +2,20 @@ import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import User from '@/models/User';
 import { sendPasswordResetEmail } from '@/lib/email';
+import { withRateLimit } from '@/lib/rateLimit';
+import { requireCsrfToken } from '@/lib/csrf';
 import crypto from 'crypto';
 
 export async function POST(request: NextRequest) {
   try {
-    await connectDB();
+    // Verify CSRF token
+    const csrfValid = await requireCsrfToken(request);
+    if (!csrfValid) {
+      return NextResponse.json(
+        { success: false, message: 'Invalid CSRF token. Please refresh the page and try again.' },
+        { status: 403 }
+      );
+    }
 
     const { email } = await request.json();
 
@@ -16,6 +25,28 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Check rate limit (by IP + email)
+    const rateLimitResult = await withRateLimit(request, 'forgot-password', email);
+    
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { 
+          success: false,
+          message: rateLimitResult.message || 'Too many password reset attempts. Please try again later.',
+          resetAt: rateLimitResult.resetAt,
+        },
+        { 
+          status: 429,
+          headers: {
+            'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
+            'X-RateLimit-Reset': rateLimitResult.resetAt?.toISOString() || '',
+          }
+        }
+      );
+    }
+
+    await connectDB();
 
     // Find user by email
     const user = await User.findOne({ 
@@ -34,13 +65,14 @@ export async function POST(request: NextRequest) {
     // Generate secure random token for password reset
     const resetToken = crypto.randomBytes(32).toString('hex');
     
-    // Set token expiration to 1 hour from now
+    // Set token expiration to 1 hour from now (TTL)
     const tokenExpires = new Date(Date.now() + 60 * 60 * 1000);
 
-    // Update user with password reset token
+    // Update user with password reset token (mark as unused)
     await User.findByIdAndUpdate(user._id, {
       passwordResetToken: resetToken,
       passwordResetExpires: tokenExpires,
+      passwordResetTokenUsed: false, // Mark as unused (single-use token)
     });
 
     // Create password reset URL
@@ -73,10 +105,17 @@ export async function POST(request: NextRequest) {
       console.log(`Development password reset link for ${email}: ${resetLink}`);
     }
 
-    return NextResponse.json({
+    const response: any = {
       success: true,
       message: 'If an account with that email exists, you will receive a password reset link.',
-    });
+    };
+
+    // Include development link if env flag is set
+    if (process.env.NODE_ENV === 'development' || process.env.NEXT_PUBLIC_SHOW_DEV_LINKS === 'true') {
+      response.developmentLink = resetLink;
+    }
+
+    return NextResponse.json(response);
 
   } catch (error: any) {
     console.error('Forgot password error:', error);

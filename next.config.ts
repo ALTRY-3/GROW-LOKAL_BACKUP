@@ -1,6 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Specify the correct root directory for turbopack
+  turbopack: {
+    root: process.cwd(),
+  },
+  
   images: {
     // Enable modern image formats
     formats: ['image/webp', 'image/avif'],

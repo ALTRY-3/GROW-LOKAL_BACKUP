@@ -93,6 +93,8 @@ export default function VerifyEmailPage() {
             alt="Pattern"
             className="left-pattern"
             fill
+            sizes="(max-width: 768px) 100vw, 50vw"
+            unoptimized
           />
         </div>
         

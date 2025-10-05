@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname } from "next/navigation"; 
 import "./chatbot.css";
 
 export default function Chatbot() {
-  const pathname = usePathname() || "";
+  const pathname = usePathname() || ""; 
 
+  // All hooks must be called before any conditional returns
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<{ sender: string; text: string }[]>(
     []
@@ -19,9 +20,6 @@ export default function Chatbot() {
     "/reset-password",
     "/forgot-password",
     "/otp-verification",
-    "/map",
-    "/cart",
-    "/profile",
   ];
 
   if (hiddenRoutes.includes(pathname)) {
@@ -55,7 +53,10 @@ export default function Chatbot() {
         <div className="chatbot-window">
           <div className="chatbot-header">
             <span>Chat with us</span>
-            <button className="chatbot-close" onClick={() => setIsOpen(false)}>
+            <button
+              className="chatbot-close"
+              onClick={() => setIsOpen(false)}
+            >
               ✕
             </button>
           </div>

@@ -10,9 +10,13 @@ export interface IUser extends mongoose.Document {
   emailVerificationExpires: Date | null;
   passwordResetToken: string | null;
   passwordResetExpires: Date | null;
+  passwordResetTokenUsed: boolean;
   provider: 'email' | 'google' | 'facebook';
   providerId?: string;
   image?: string;
+  failedLoginAttempts: number;
+  lastFailedLogin: Date | null;
+  accountLockedUntil: Date | null;
   createdAt: Date;
   updatedAt: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
@@ -65,6 +69,10 @@ const UserSchema = new mongoose.Schema<IUser>(
       type: Date,
       default: null,
     },
+    passwordResetTokenUsed: {
+      type: Boolean,
+      default: false,
+    },
     provider: {
       type: String,
       enum: ['email', 'google', 'facebook'],
@@ -76,6 +84,18 @@ const UserSchema = new mongoose.Schema<IUser>(
     },
     image: {
       type: String,
+      default: null,
+    },
+    failedLoginAttempts: {
+      type: Number,
+      default: 0,
+    },
+    lastFailedLogin: {
+      type: Date,
+      default: null,
+    },
+    accountLockedUntil: {
+      type: Date,
       default: null,
     },
   },

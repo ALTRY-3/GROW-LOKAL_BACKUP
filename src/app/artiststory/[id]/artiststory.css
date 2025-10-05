@@ -9,19 +9,7 @@
   box-sizing: border-box;
 }
 
-.artiststory-page h1 {
-  display: flex;
-  justify-content: center; 
-  align-items: center;     
-  font-family: "Poppins", sans-serif;
-  font-weight: 600;
-  color: #2e3f36;
-  padding: 1rem 0;         
-  margin: 2rem auto;
-}
-
 .artiststory-box {
-  position: relative;
   width: 1352px;
   background: #ffffff;
   border-radius: 5px;
@@ -44,14 +32,15 @@
   border-radius: 5px;
   border: 2px solid #2e3f36;
   object-fit: cover;
-  margin-bottom: -1rem;
+  margin-bottom: 2rem;
 }
 
 .artiststory-title {
   font-size: 1.8rem;
   font-weight: 700;
   color: #2e3f36;
-  margin: 0.3rem 0 0.2rem 0; 
+  margin: 0.5rem 0;
+  text-align: center;
 }
 
 .artiststory-artist {
@@ -59,20 +48,18 @@
   font-weight: 300;
   letter-spacing: 0.07em;
   color: #af7928;
-  margin-bottom: 1rem; 
-  margin-top: -2rem;     
+  margin-bottom: 2rem;
   text-align: center;
 }
 
 .artiststory-excerpt {
   font-size: 0.9rem;
   font-weight: 400;
-  line-height: 1.7;
+  line-height: 1.9;
   color: #000;
   text-align: left;
   max-width: 1000px;
-  margin-bottom: 1.2rem; /* reduced bottom margin */
-  margin-top: 0;         /* remove any top margin */
+  margin-bottom: 2rem;
 }
 
 .artiststory-btn {
@@ -91,31 +78,6 @@
 
 .artiststory-btn:hover {
   background: #1e2a25;
-}
-
-.story-back-button {
-  position: absolute;
-  top: 1.5rem;
-  left: 1.8rem;
-  z-index: 1000;
-  width: 50px;
-  height: 50px;
-  background: #ffffff;
-  border: 2px solid #af7928;
-  border-radius: 8px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-  color: #2e3f36;
-  font-size: 22px;
-  font-weight: 900;
-  cursor: pointer;
-  transition: box-shadow 0.2s ease, transform 0.1s ease;
-}
-
-.story-back-button:hover {
-  background: #AF7928;
-  color: #fff;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-  transform: translateY(-2px);
 }
 
 @media (max-width: 1400px) {

@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import { Poppins } from "next/font/google";
 import "./globals.css";
+
 import Chatbot from "@/components/Chatbot";
 import AuthProvider from "@/components/AuthProvider";
-import { CartProvider } from "./context/CartContext";
+import RecaptchaProvider from "@/components/RecaptchaProvider";
+import RecaptchaDebug from "@/components/RecaptchaDebug";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -12,8 +14,7 @@ const poppins = Poppins({
 
 export const metadata: Metadata = {
   title: "GrowLokal",
-  description:
-    "A community marketplace for Olongapo’s artisans and entrepreneurs",
+  description: "A community marketplace for Olongapo’s artisans and entrepreneurs",
 };
 
 export default function RootLayout({
@@ -24,6 +25,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        {/* FontAwesome for icons */}
         <link
           rel="stylesheet"
           href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"
@@ -33,8 +35,12 @@ export default function RootLayout({
       </head>
       <body className={poppins.className}>
         <AuthProvider>
-          <CartProvider>{children}</CartProvider>
-          <Chatbot />
+          <RecaptchaProvider>
+            <RecaptchaDebug />
+            {children}
+            {/* Chatbot stays on all pages */}
+            <Chatbot />
+          </RecaptchaProvider>
         </AuthProvider>
       </body>
     </html>

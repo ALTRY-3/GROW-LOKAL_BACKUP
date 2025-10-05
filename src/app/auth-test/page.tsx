@@ -35,9 +35,7 @@ export default function AuthTest() {
       </button>
       <br />
       <br />
-      <button
-        onClick={() => signIn("facebook", { callbackUrl: "/marketplace" })}
-      >
+      <button onClick={() => signIn("facebook", { callbackUrl: "/marketplace" })}>
         Sign in with Facebook
       </button>
     </div>

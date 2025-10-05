@@ -1,497 +1,248 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useEffect } from "react";
 import ImageCarousel from "@/components/ImageCarousel1";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ProductModal from "@/components/ProductModal";
-import { useCart } from "@/app/context/CartContext";
 import "./marketplace.css";
 
+// API Product interface
 interface Product {
-  id: number;
+  _id: string;
+  name: string;
+  description: string;
+  category: string;
+  price: number;
+  stock: number;
+  images: string[];
+  thumbnailUrl: string;
+  artistName: string;
+  artistId: string;
+  averageRating: number;
+  totalReviews: number;
+  isAvailable: boolean;
+  isFeatured: boolean;
+}
+
+// Legacy interface for ProductModal compatibility
+interface LegacyProduct {
   img: string;
   hoverImg: string;
   name: string;
   artist: string;
   price: string;
-  storyId?: string;
+  productId?: string;
+  maxStock?: number;
 }
 
-const handicrafts: Product[] = [
-  {
-    id: 1,
-    img: "/box1.png",
-    hoverImg: "/box1.1.png",
-    name: "Acacia Wood Deep Round Plate",
-    artist: "RICHEL MARABE",
-    price: "₱149.00",
-    storyId: "1",
-  },
-  {
-    id: 2,
-    img: "/box2.png",
-    hoverImg: "/box2.2.png",
-    name: "Classic Woven Fedora Hat",
-    artist: "MANG BEN",
-    price: "₱249.75",
-    storyId: "2",
-  },
-  {
-    id: 3,
-    img: "/box3.png",
-    hoverImg: "/box3.3.png",
-    name: "Acacia Wood Salad Tosser",
-    artist: "CARLA",
-    price: "₱349.75",
-    storyId: "3",
-  },
-  {
-    id: 4,
-    img: "/box4.png",
-    hoverImg: "/box4.4.png",
-    name: "Acacia Wood Ladle",
-    artist: "DAVID",
-    price: "₱199.00",
-    storyId: "4",
-  },
-  {
-    id: 5,
-    img: "/box5.png",
-    hoverImg: "/box5.5.png",
-    name: "Acacia Wood Plate",
-    artist: "EBON",
-    price: "₱499.00",
-    storyId: "5",
-  },
-  {
-    id: 6,
-    img: "/box6.png",
-    hoverImg: "/box6.6.png",
-    name: "Hardin Beaded Earrings",
-    artist: "FRANCES",
-    price: "₱499.00",
-    storyId: "6",
-  },
-  {
-    id: 7,
-    img: "/box7.png",
-    hoverImg: "/box7.7.png",
-    name: "Handwoven Buri Bag",
-    artist: "LENG",
-    price: "₱79.00",
-    storyId: "7",
-  },
-  {
-    id: 8,
-    img: "/box8.png",
-    hoverImg: "/box8.8.png",
-    name: "Round Nito Placemat",
-    artist: "TAHANAN",
-    price: "₱399.00",
-    storyId: "8",
-  },
-];
-
-const fashion: Product[] = [
-  {
-    id: 1,
-    img: "/fashion1.png",
-    hoverImg: "/fashion1.1.png",
-    name: "Blue Leaf Print Dress",
-    artist: "PIÑA CLOTH",
-    price: "₱199.75",
-    storyId: "1",
-  },
-  {
-    id: 2,
-    img: "/fashion2.png",
-    hoverImg: "/fashion2.2.png",
-    name: "Tie-Dye Tube Dress",
-    artist: "NATURAL",
-    price: "₱699.00",
-    storyId: "2",
-  },
-  {
-    id: 3,
-    img: "/fashion3.png",
-    hoverImg: "/fashion3.3.png",
-    name: "Crochet Dress with Beaded Straps",
-    artist: "COTTON",
-    price: "₱799.00",
-    storyId: "3",
-  },
-  {
-    id: 4,
-    img: "/fashion4.png",
-    hoverImg: "/fashion4.4.png",
-    name: "Banig Belt",
-    artist: "PATTERNED",
-    price: "₱399.00",
-    storyId: "4",
-  },
-  {
-    id: 5,
-    img: "/fashion5.png",
-    hoverImg: "/fashion5.5.png",
-    name: "Embroidered Shawls",
-    artist: "NUEVO",
-    price: "₱699.00",
-    storyId: "5",
-  },
-  {
-    id: 6,
-    img: "/fashion6.png",
-    hoverImg: "/fashion6.6.png",
-    name: "Collared Embroidered Shirt",
-    artist: "HANDMADE",
-    price: "₱899.00",
-    storyId: "6",
-  },
-  {
-    id: 7,
-    img: "/fashion7.png",
-    hoverImg: "/fashion7.7.png",
-    name: "Native Abaca Headband",
-    artist: "MULTICOLOR",
-    price: "₱199.00",
-    storyId: "7",
-  },
-  {
-    id: 8,
-    img: "/fashion8.png",
-    hoverImg: "/fashion8.8.png",
-    name: "PH Embroidered Cap",
-    artist: "NATIVE",
-    price: "₱249.00",
-    storyId: "8",
-  },
-];
-
-const home: Product[] = [
-  {
-    id: 1,
-    img: "/home1.png",
-    hoverImg: "/home1.1.png",
-    name: "Floral Hand-Painted Fan",
-    artist: "LANDSCAPE",
-    price: "₱249.00",
-    storyId: "1",
-  },
-  {
-    id: 2,
-    img: "/home2.png",
-    hoverImg: "/home2.2.png",
-    name: "Miniature Jeepney",
-    artist: "WOOD",
-    price: "₱499.00",
-    storyId: "2",
-  },
-  {
-    id: 3,
-    img: "/home3.png",
-    hoverImg: "/home3.3.png",
-    name: "Retaso Patchwork",
-    artist: "CUSTOM",
-    price: "₱2,799.00",
-    storyId: "3",
-  },
-  {
-    id: 4,
-    img: "/home4.png",
-    hoverImg: "/home4.4.png",
-    name: "Mother Pearl Pen Holder",
-    artist: "TAHANAN",
-    price: "₱799.00",
-    storyId: "4",
-  },
-  {
-    id: 5,
-    img: "/home5.png",
-    hoverImg: "/home5.5.png",
-    name: "Handcrafted Christmas Parol",
-    artist: "FILIPINO QUOTE",
-    price: "₱1,099.00",
-    storyId: "5",
-  },
-  {
-    id: 6,
-    img: "/home6.png",
-    hoverImg: "/home6.6.png",
-    name: "Rice Grooved Kuksa Mug",
-    artist: "KAHOY",
-    price: "₱449.00",
-    storyId: "6",
-  },
-  {
-    id: 7,
-    img: "/home7.png",
-    hoverImg: "/home7.7.png",
-    name: "Pandan Picture Frame",
-    artist: "TRIBAL",
-    price: "₱849.00",
-    storyId: "7",
-  },
-  {
-    id: 8,
-    img: "/home8.png",
-    hoverImg: "/home8.8.png",
-    name: "Hand-Painted Cushion Cover",
-    artist: "GAPO",
-    price: "₱1,499.00",
-    storyId: "8",
-  },
-];
-
-const food: Product[] = [
-  {
-    id: 1,
-    img: "/food1.png",
-    hoverImg: "/food1.1.png",
-    name: "Green Banana Chips 85g",
-    artist: "KYLA",
-    price: "₱120.00",
-    storyId: "1",
-  },
-  {
-    id: 2,
-    img: "/food2.png",
-    hoverImg: "/food2.2.png",
-    name: "Sabanana Sweet Original 100g",
-    artist: "KYLA",
-    price: "₱89.00",
-    storyId: "2",
-  },
-  {
-    id: 3,
-    img: "/food3.png",
-    hoverImg: "/food3.3.png",
-    name: "Sweet & Spicy Dilis 60g",
-    artist: "KYLA",
-    price: "₱99.00",
-    storyId: "3",
-  },
-  {
-    id: 4,
-    img: "/food4.png",
-    hoverImg: "/food4.4.png",
-    name: "Camote Chips Kimchi Flavor 60g",
-    artist: "KYLA",
-    price: "₱99.00",
-    storyId: "4",
-  },
-  {
-    id: 5,
-    img: "/food5.png",
-    hoverImg: "/food5.5.png",
-    name: "KangKong Chips Cheese 60gs",
-    artist: "ALJHUN",
-    price: "₱149.00",
-    storyId: "5",
-  },
-  {
-    id: 6,
-    img: "/food6.png",
-    hoverImg: "/food6.6.png",
-    name: "Pure Benguet Honey",
-    artist: "ALJHUN",
-    price: "₱369.00",
-    storyId: "6",
-  },
-  {
-    id: 7,
-    img: "/food7.png",
-    hoverImg: "/food7.7.png",
-    name: "Cebu Dried Mangoes 200g",
-    artist: "ALJHUN",
-    price: "₱319.00",
-    storyId: "7",
-  },
-  {
-    id: 8,
-    img: "/food8.png",
-    hoverImg: "/food8.8.png",
-    name: "Native Chocolate with Cacao",
-    artist: "ALJHUN",
-    price: "₱99.00",
-    storyId: "8",
-  },
-];
-
-const beauty: Product[] = [
-  {
-    id: 1,
-    img: "/beauty1.png",
-    hoverImg: "/beauty1.1.png",
-    name: "Eucalyptus Massage Oil 230ml",
-    artist: "ATIN",
-    price: "₱699.00",
-    storyId: "1",
-  },
-  {
-    id: 2,
-    img: "/beauty2.png",
-    hoverImg: "/beauty2.2.png",
-    name: "Nourishing Hari Oil 60ml",
-    artist: "SIBOL",
-    price: "₱379.75",
-    storyId: "2",
-  },
-  {
-    id: 3,
-    img: "/beauty3.png",
-    hoverImg: "/beauty3.3.png",
-    name: "Organic Deodorant",
-    artist: "JABON",
-    price: "₱229.00",
-    storyId: "3",
-  },
-  {
-    id: 4,
-    img: "/beauty4.png",
-    hoverImg: "/beauty4.4.png",
-    name: "Sanitizer",
-    artist: "SHEPARD",
-    price: "₱249.00",
-    storyId: "4",
-  },
-  {
-    id: 5,
-    img: "/beauty5.png",
-    hoverImg: "/beauty5.5.png",
-    name: "Skin Care Soap",
-    artist: "AYO",
-    price: "₱259.00",
-    storyId: "5",
-  },
-  {
-    id: 6,
-    img: "/beauty6.png",
-    hoverImg: "/beauty6.6.png",
-    name: "Liquid Conditioner",
-    artist: "LEYLA",
-    price: "₱429.00",
-    storyId: "6",
-  },
-  {
-    id: 7,
-    img: "/beauty7.png",
-    hoverImg: "/beauty7.7.png",
-    name: "Botanical Sanitizer",
-    artist: "NATURALE",
-    price: "₱899.00",
-    storyId: "7",
-  },
-  {
-    id: 8,
-    img: "/beauty8.png",
-    hoverImg: "/beauty8.8.png",
-    name: "Anti-Dandruff Shampoo Bar 75g",
-    artist: "SIBOL",
-    price: "₱229.00",
-    storyId: "8",
-  },
-];
-
 export default function Marketplace() {
-  const { cartCount, cartItems } = useCart();
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [query, setQuery] = useState("");
-  const [suggestions, setSuggestions] = useState<Product[]>([]);
+  const [selectedProduct, setSelectedProduct] = useState<LegacyProduct | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Product state by category
+  const [handicrafts, setHandicrafts] = useState<Product[]>([]);
+  const [fashion, setFashion] = useState<Product[]>([]);
+  const [home, setHome] = useState<Product[]>([]);
+  const [food, setFood] = useState<Product[]>([]);
+  const [beauty, setBeauty] = useState<Product[]>([]);
 
-  const CartCount = () => (
-    <span className="cart-count" aria-live="polite">
-      {cartCount}
-    </span>
-  );
+  // Fetch products on mount
+  useEffect(() => {
+    fetchAllProducts();
+  }, []);
 
-  const allProducts: Product[] = [
-    ...handicrafts,
-    ...fashion,
-    ...home,
-    ...food,
-    ...beauty,
-  ];
+  const fetchAllProducts = async () => {
+    try {
+      setLoading(true);
+      setError(null);
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setQuery(value);
-
-    if (value.trim() === "") {
-      setSuggestions([]);
-    } else {
-      const filtered = allProducts.filter(
-        (p) =>
-          p.name.toLowerCase().includes(value.toLowerCase()) ||
-          p.artist.toLowerCase().includes(value.toLowerCase())
+      // Fetch products for all categories
+      const categories = ['handicrafts', 'fashion', 'home', 'food', 'beauty'];
+      const promises = categories.map(category =>
+        fetch(`/api/products?category=${category}&limit=8`)
+          .then(res => res.json())
       );
-      setSuggestions(filtered.slice(0, 5));
+
+      const results = await Promise.all(promises);
+
+      // Check for errors
+      results.forEach((result, index) => {
+        if (!result.success) {
+          throw new Error(`Failed to fetch ${categories[index]} products`);
+        }
+      });
+
+      // Set products by category
+      setHandicrafts(results[0].data || []);
+      setFashion(results[1].data || []);
+      setHome(results[2].data || []);
+      setFood(results[3].data || []);
+      setBeauty(results[4].data || []);
+
+    } catch (err: any) {
+      console.error('Error fetching products:', err);
+      setError(err.message || 'Failed to load products');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleSuggestionClick = (product: Product) => {
-    setSelectedProduct(product);
-    setQuery("");
-    setSuggestions([]);
+  // Handle search
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) return;
+
+    try {
+      setLoading(true);
+      const response = await fetch(`/api/products?search=${encodeURIComponent(searchQuery)}&limit=50`);
+      const data = await response.json();
+
+      if (data.success) {
+        // Group results by category
+        const grouped = data.data.reduce((acc: any, product: Product) => {
+          if (!acc[product.category]) acc[product.category] = [];
+          acc[product.category].push(product);
+          return acc;
+        }, {});
+
+        setHandicrafts(grouped.handicrafts || []);
+        setFashion(grouped.fashion || []);
+        setHome(grouped.home || []);
+        setFood(grouped.food || []);
+        setBeauty(grouped.beauty || []);
+      }
+    } catch (err) {
+      console.error('Search error:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const { addToCart } = useCart();
+  // Convert API product to legacy format for ProductModal
+  const convertToLegacyProduct = (product: Product): LegacyProduct => ({
+    img: product.images[0] || product.thumbnailUrl,
+    hoverImg: product.images[1] || product.images[0] || product.thumbnailUrl,
+    name: product.name,
+    artist: product.artistName,
+    price: `₱${product.price.toFixed(2)}`,
+    productId: product._id,
+    maxStock: product.stock,
+  });
 
-  const handleAddToCart = (product: Product, imgEl: HTMLElement) => {
-    addToCart({
-      id: product.id.toString(),
-      name: product.name,
-      price: parseFloat(product.price.replace(/[₱,]/g, "")),
-      img: product.img,
-      quantity: 1,
-    });
-
-    animateAddToCart(product.img, imgEl);
+  const handleProductClick = (product: Product) => {
+    setSelectedProduct(convertToLegacyProduct(product));
   };
+
+  // Loading skeleton
+  if (loading && handicrafts.length === 0) {
+    return (
+      <div className="marketplace-page">
+        <Navbar />
+        <div className="search-bar-container">
+          <div className="search-bar">
+            <i className="fas fa-search search-icon"></i>
+            <input
+              className="search-input"
+              type="text"
+              placeholder="Search for a product or artist"
+              disabled
+            />
+          </div>
+        </div>
+        <div className="carousel-section">
+          <ImageCarousel autoSlide={true} slideInterval={3000} />
+          <div className="carousel-text">Discover local treasures.</div>
+        </div>
+        <div style={{ textAlign: 'center', padding: '4rem 0' }}>
+          <div className="loading-spinner">
+            <i className="fas fa-spinner fa-spin" style={{ fontSize: '3rem', color: '#AF7928' }}></i>
+            <p style={{ marginTop: '1rem', fontSize: '1.2rem' }}>Loading products...</p>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="marketplace-page">
+        <Navbar />
+        <div className="search-bar-container">
+          <div className="search-bar">
+            <i className="fas fa-search search-icon"></i>
+            <input
+              className="search-input"
+              type="text"
+              placeholder="Search for a product or artist"
+            />
+          </div>
+        </div>
+        <div style={{ textAlign: 'center', padding: '4rem 0' }}>
+          <div style={{ color: '#e74c3c', fontSize: '1.2rem' }}>
+            <i className="fas fa-exclamation-circle" style={{ fontSize: '3rem', marginBottom: '1rem' }}></i>
+            <p>{error}</p>
+            <button 
+              onClick={fetchAllProducts}
+              style={{
+                marginTop: '1rem',
+                padding: '0.75rem 2rem',
+                backgroundColor: '#AF7928',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '1rem'
+              }}
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="marketplace-page">
       <Navbar />
 
       <div className="search-bar-container">
-        <div className="search-bar">
-          <i className="fas fa-search search-icon" aria-hidden="true"></i>
-          <label htmlFor="marketplace-search" className="sr-only">
-            Search for a product or artist
-          </label>
+        <form onSubmit={handleSearch} className="search-bar">
+          <i className="fas fa-search search-icon"></i>
           <input
-            id="marketplace-search"
             className="search-input"
             type="text"
             placeholder="Search for a product or artist"
-            value={query}
-            onChange={handleSearchChange}
-            aria-label="Search products or artists"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
           />
-        </div>
-
-        {suggestions.length > 0 && (
-          <ul className="suggestions-box" role="listbox">
-            {suggestions.map((product, index) => (
-              <li
-                key={index}
-                role="option"
-                onClick={() => handleSuggestionClick(product)}
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleSuggestionClick(product);
-                }}
-              >
-                <img
-                  src={product.img}
-                  alt={`${product.name} by ${product.artist}`}
-                />
-                <span>{product.name}</span>
-                <span className="suggestion-artist">{product.artist}</span>
-              </li>
-            ))}
-          </ul>
-        )}
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearchQuery('');
+                fetchAllProducts();
+              }}
+              style={{
+                position: 'absolute',
+                right: '1rem',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '1.2rem',
+                color: '#999'
+              }}
+            >
+              <i className="fas fa-times"></i>
+            </button>
+          )}
+        </form>
       </div>
 
       <div className="carousel-section">
@@ -499,36 +250,81 @@ export default function Marketplace() {
         <div className="carousel-text">Discover local treasures.</div>
       </div>
 
-      <Section
-        title="HANDICRAFTS"
-        products={handicrafts}
-        setSelectedProduct={setSelectedProduct}
-        onAddToCart={handleAddToCart}
-      />
-      <Section
-        title="FASHION"
-        products={fashion}
-        setSelectedProduct={setSelectedProduct}
-        onAddToCart={handleAddToCart}
-      />
-      <Section
-        title="HOME"
-        products={home}
-        setSelectedProduct={setSelectedProduct}
-        onAddToCart={handleAddToCart}
-      />
-      <Section
-        title="FOOD"
-        products={food}
-        setSelectedProduct={setSelectedProduct}
-        onAddToCart={handleAddToCart}
-      />
-      <Section
-        title="BEAUTY & WELLNESS"
-        products={beauty}
-        setSelectedProduct={setSelectedProduct}
-        onAddToCart={handleAddToCart}
-      />
+      {handicrafts.length > 0 && (
+        <Section
+          title="HANDICRAFTS"
+          products={handicrafts}
+          onProductClick={handleProductClick}
+          loading={loading}
+        />
+      )}
+      
+      {fashion.length > 0 && (
+        <Section
+          title="FASHION"
+          products={fashion}
+          onProductClick={handleProductClick}
+          loading={loading}
+        />
+      )}
+      
+      {home.length > 0 && (
+        <Section
+          title="HOME"
+          products={home}
+          onProductClick={handleProductClick}
+          loading={loading}
+        />
+      )}
+      
+      {food.length > 0 && (
+        <Section
+          title="FOOD"
+          products={food}
+          onProductClick={handleProductClick}
+          loading={loading}
+        />
+      )}
+      
+      {beauty.length > 0 && (
+        <Section
+          title="BEAUTY & WELLNESS"
+          products={beauty}
+          onProductClick={handleProductClick}
+          loading={loading}
+        />
+      )}
+
+      {/* No results message */}
+      {!loading && handicrafts.length === 0 && fashion.length === 0 && 
+       home.length === 0 && food.length === 0 && beauty.length === 0 && (
+        <div style={{ textAlign: 'center', padding: '4rem 0' }}>
+          <i className="fas fa-search" style={{ fontSize: '3rem', color: '#999', marginBottom: '1rem' }}></i>
+          <p style={{ fontSize: '1.2rem', color: '#666' }}>
+            {searchQuery ? `No products found for "${searchQuery}"` : 'No products available'}
+          </p>
+          {searchQuery && (
+            <button 
+              onClick={() => {
+                setSearchQuery('');
+                fetchAllProducts();
+              }}
+              style={{
+                marginTop: '1rem',
+                padding: '0.75rem 2rem',
+                backgroundColor: '#AF7928',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '1rem'
+              }}
+            >
+              Clear Search
+            </button>
+          )}
+        </div>
+      )}
 
       <Footer />
 
@@ -545,119 +341,94 @@ export default function Marketplace() {
 function Section({
   title,
   products,
-  setSelectedProduct,
-  onAddToCart,
+  onProductClick,
+  loading,
 }: {
   title: string;
   products: Product[];
-  setSelectedProduct: (product: Product) => void;
-  onAddToCart: (product: Product, imgEl: HTMLElement) => void;
+  onProductClick: (product: Product) => void;
+  loading?: boolean;
 }) {
-  const imageRefs = useRef(new Map<number, HTMLImageElement>());
-
   return (
     <>
-      {/* Replaced h2 with div, still accessible */}
-      <div className="section-title" role="heading" aria-level={2}>
-        {title}
-      </div>
-
+      <div className="section-title">{title}</div>
       <div className="product-grid">
         {products.map((product) => (
-          <div className="product-card" key={product.id}>
+          <div className="product-card" key={product._id}>
             <div className="image-container">
               <img
-                src={product.img}
-                alt={`${product.name} by ${product.artist}`}
+                src={product.images[0] || product.thumbnailUrl}
+                alt={product.name}
                 className="product-image default"
-                ref={(el) => {
-                  if (el) imageRefs.current.set(product.id, el);
-                }}
               />
               <img
-                src={product.hoverImg}
-                alt={`${product.name} alternate view`}
+                src={product.images[1] || product.images[0] || product.thumbnailUrl}
+                alt={product.name}
                 className="product-image hover"
               />
-
-              <button
-                className="cart-icon-btn"
-                onClick={() => {
-                  const imgEl = imageRefs.current.get(product.id);
-                  if (imgEl) onAddToCart(product, imgEl);
-                }}
-                aria-label={`Add ${product.name} to cart`}
-              >
-                <i className="fas fa-shopping-cart" aria-hidden="true"></i>
-              </button>
-
-              <button
-                className="view-button"
-                onClick={() => setSelectedProduct(product)}
-                aria-label={`View details of ${product.name}`}
-              >
-                View
-              </button>
+              
+              {/* Out of stock overlay */}
+              {!product.isAvailable || product.stock === 0 ? (
+                <div style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  backgroundColor: 'rgba(0,0,0,0.6)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'white',
+                  fontSize: '1.2rem',
+                  fontWeight: 'bold',
+                }}>
+                  OUT OF STOCK
+                </div>
+              ) : (
+                <button
+                  className="view-button"
+                  onClick={() => onProductClick(product)}
+                >
+                  View
+                </button>
+              )}
+              
+              {/* Featured badge */}
+              {product.isFeatured && (
+                <div style={{
+                  position: 'absolute',
+                  top: '10px',
+                  right: '10px',
+                  backgroundColor: '#AF7928',
+                  color: 'white',
+                  padding: '4px 8px',
+                  borderRadius: '4px',
+                  fontSize: '0.75rem',
+                  fontWeight: 'bold',
+                }}>
+                  FEATURED
+                </div>
+              )}
             </div>
             <div className="product-info">
               <h3 className="product-name">{product.name}</h3>
-              <p className="product-artist">{product.artist}</p>
-              <span className="product-price">{product.price}</span>
+              <p className="product-artist">{product.artistName}</p>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span className="product-price">₱{product.price.toFixed(2)}</span>
+                {product.averageRating > 0 && (
+                  <div style={{ display: 'flex', alignItems: 'center', fontSize: '0.85rem', color: '#f39c12' }}>
+                    <i className="fas fa-star"></i>
+                    <span style={{ marginLeft: '4px' }}>
+                      {product.averageRating.toFixed(1)} ({product.totalReviews})
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         ))}
       </div>
     </>
   );
-}
-
-function animateAddToCart(imgSrc: string, startElement: HTMLElement) {
-  const cartIcon = document.querySelector(
-    ".icon-wrapper .nav-icon"
-  ) as HTMLElement;
-  if (!cartIcon) return;
-
-  const img = document.createElement("img");
-  img.src = imgSrc;
-
-  const startRect = startElement.getBoundingClientRect();
-  const cartRect = cartIcon.getBoundingClientRect();
-
-  const scrollTop = window.scrollY || window.pageYOffset;
-  const scrollLeft = window.scrollX || window.pageXOffset;
-
-  const startX = startRect.left + scrollLeft;
-  const startY = startRect.top + scrollTop;
-  const endX =
-    cartRect.left + scrollLeft + cartRect.width / 2 - startRect.width / 2;
-  const endY =
-    cartRect.top + scrollTop + cartRect.height / 2 - startRect.height / 2;
-
-  img.style.position = "absolute";
-  img.style.top = `${startY}px`;
-  img.style.left = `${startX}px`;
-  img.style.width = `${startRect.width}px`;
-  img.style.height = `${startRect.height}px`;
-  img.style.borderRadius = "8px";
-  img.style.zIndex = "1000";
-  img.style.pointerEvents = "none";
-  img.style.transition =
-    "transform 0.8s cubic-bezier(0.65, 0, 0.35, 1), opacity 0.8s";
-
-  document.body.appendChild(img);
-
-  requestAnimationFrame(() => {
-    const deltaX = endX - startX;
-    const deltaY = endY - startY;
-
-    img.style.transform = `
-    translate(${deltaX + 50}px, ${deltaY - 50}px)
-    scale(0.1)
-  `;
-    img.style.opacity = "0.5";
-  });
-
-  setTimeout(() => {
-    img.remove();
-  }, 800);
 }

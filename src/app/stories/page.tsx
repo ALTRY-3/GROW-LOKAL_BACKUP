@@ -17,50 +17,51 @@ interface Story {
 const stories: Story[] = [
   {
     id: "1",
-    img: "/artist1.jpg",
-    title: "How I Turned Clay Into My Dream Business",
-    artist: "RICHEL MARABE",
-    excerpt: `In this story, I will share how I transformed my passion for clay into a thriving business. From humble beginnings to showcasing my work in local galleries, it's been an incredible journey.`,
+    img: "/artist1.png",
+    title: "Artist 1 Story",
+    artist: "MANG ABA",
+    excerpt:
+      "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.",
   },
   {
     id: "2",
     img: "/artist2.png",
-    title: "Breathing Life Into Wood",
+    title: "Artist 2 Story",
     artist: "MANG BEN",
     excerpt:
-      "What began as a childhood pastime of carving fallen branches grew into my lifelong craft. Every curve and groove is a reflection of patience, culture, and the stories of my community. Through woodcarving, I honor the trees that once stood tall and turn them into timeless art.",
+      "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.",
   },
   {
     id: "3",
     img: "/artist3.png",
-    title: "Colors of Memory",
+    title: "Artist 3 Story",
     artist: "CARLA",
     excerpt:
-      "I started painting with leftover pigments from my father’s shop. To me, each brushstroke is not just art but memory — of sunsets in the province, of festivals, of people’s daily lives. Painting allows me to preserve emotions and share stories that words cannot always capture.",
+      "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.",
   },
   {
     id: "4",
-    img: "/artist4.png",
-    title: "Threads of Tradition",
+    img: "/artist1.png",
+    title: "Artist 4 Story",
     artist: "DAVID",
     excerpt:
-      "Handweaving was passed down to me by my grandmother. Every thread I weave is a prayer, every pattern a history book. Through weaving, I keep our heritage alive while creating pieces that can travel the world, carrying the spirit of our ancestors in every strand.",
+      "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.",
   },
   {
     id: "5",
-    img: "/artist5.png",
-    title: "Story of My Journey",
+    img: "/artist2.png",
+    title: "Artist 5 Story",
     artist: "EBON",
     excerpt:
-      "What inspired me to create this piece was the vibrant tapestry of memories that colors our lives. Each hue represents a different emotion, a fleeting moment, or a cherished experience. As I worked on this artwork, I reflected on the people and places that have shaped my journey. The bold strokes convey the passion I feel for my craft, while the softer shades evoke a sense of nostalgia. Through this piece, I hope to invite viewers to explore their own memories and find beauty in the complexities of life.",
+      "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.",
   },
   {
     id: "6",
-    img: "/artist6.png",
-    title: "Art of Resilience",
+    img: "/artist3.png",
+    title: "Artist 6 Story",
     artist: "FRANCES",
     excerpt:
-      "What inspired me to create this piece was the idea of resilience in the face of adversity. Each layer of paint represents a struggle, a triumph, or a moment of reflection. As I worked on this artwork, I thought about the challenges I've faced and the strength I've found within myself. The bold colors convey the intensity of my emotions, while the softer tones remind me of the moments of peace I've discovered along the way. Through this piece, I hope to inspire others to embrace their own journeys and find beauty in the process of healing.",
+      "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.",
   },
 ];
 
@@ -87,11 +88,7 @@ export default function StoriesPage() {
 
               <h2 className="story-title">{story.title}</h2>
               <p className="story-artist">{story.artist}</p>
-              <p className="story-excerpt">
-                {story.excerpt.length > 200
-                  ? story.excerpt.substring(0, 200) + "..."
-                  : story.excerpt}
-              </p>
+              <p className="story-excerpt">{story.excerpt}</p>
 
               <Link href={`/artiststory/${story.id}`} className="read-more-btn">
                 Read More

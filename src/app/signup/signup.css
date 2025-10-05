@@ -28,11 +28,11 @@
   bottom: 0;
   width: 60px;
   z-index: 1;
-  opacity: 1;
+  opacity: 0.4;
 }
 
 .left-pattern {
-  width: 80%;
+  width: 100%;
   height: 100%;
   object-fit: cover;
   object-position: left center;
@@ -102,11 +102,12 @@
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  position: relative;
+  width: 100%;
+  height: 200px;
 }
 
 .craft-image {
-  width: 100%;
-  height: 200px;
   object-fit: cover;
   display: block;
 }

@@ -2,21 +2,85 @@ import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import User from '@/models/User';
 import { sendMagicLinkEmail } from '@/lib/email';
+import { withRateLimit, resetRateLimit } from '@/lib/rateLimit';
+import { verifyRecaptcha } from '@/lib/recaptcha';
+import { requireCsrfToken } from '@/lib/csrf';
+import { validatePassword } from '@/lib/passwordPolicy';
 import crypto from 'crypto';
 
 export async function POST(request: NextRequest) {
   try {
-    // Connect to database
-    await connectDB();
+    // Verify CSRF token
+    const csrfValid = await requireCsrfToken(request);
+    if (!csrfValid) {
+      return NextResponse.json(
+        { error: 'Invalid CSRF token. Please refresh the page and try again.' },
+        { status: 403 }
+      );
+    }
 
     // Get request body
     const body = await request.json();
-    const { name, email, password } = body;
+    const { name, email, password, recaptchaToken } = body;
+
+    // Verify reCAPTCHA token
+    if (recaptchaToken) {
+      const recaptchaResult = await verifyRecaptcha(recaptchaToken, 'signup', 0.5);
+      if (!recaptchaResult.success) {
+        return NextResponse.json(
+          { 
+            error: 'Security verification failed. Please try again.',
+            details: process.env.NODE_ENV === 'development' ? recaptchaResult.error : undefined
+          },
+          { status: 400 }
+        );
+      }
+    } else if (process.env.NODE_ENV !== 'development') {
+      // Require reCAPTCHA in production
+      return NextResponse.json(
+        { error: 'Security verification required' },
+        { status: 400 }
+      );
+    }
+
+    // Check rate limit (by IP + email)
+    const rateLimitResult = await withRateLimit(request, 'register', email);
+    
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { 
+          error: rateLimitResult.message || 'Too many registration attempts. Please try again later.',
+          resetAt: rateLimitResult.resetAt,
+        },
+        { 
+          status: 429,
+          headers: {
+            'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
+            'X-RateLimit-Reset': rateLimitResult.resetAt?.toISOString() || '',
+          }
+        }
+      );
+    }
+
+    // Connect to database
+    await connectDB();
 
     // Validate required fields
     if (!name || !email || !password) {
       return NextResponse.json(
         { error: 'Please provide name, email, and password' },
+        { status: 400 }
+      );
+    }
+
+    // Validate password strength
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.valid) {
+      return NextResponse.json(
+        { 
+          error: 'Password does not meet requirements',
+          details: passwordValidation.errors
+        },
         { status: 400 }
       );
     }
@@ -68,6 +132,9 @@ export async function POST(request: NextRequest) {
       console.log(`Development magic link for ${email}: ${magicLink}`);
     }
 
+    // Reset rate limit on successful registration
+    await resetRateLimit(`${request.headers.get('x-forwarded-for')}:${email}`, 'register');
+
     // Return success response (exclude password and sensitive data)
     return NextResponse.json(
       {
@@ -79,8 +146,14 @@ export async function POST(request: NextRequest) {
           emailVerified: user.emailVerified,
           createdAt: user.createdAt,
         },
+        developmentLink: process.env.NODE_ENV === 'development' ? magicLink : undefined,
       },
-      { status: 201 }
+      { 
+        status: 201,
+        headers: {
+          'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
+        }
+      }
     );
   } catch (error: any) {
     console.error('Registration error:', error);

@@ -1,10 +1,15 @@
-.cart-page-wrapper {
-  padding: 24px;
-  background-color: #f8f8f8;
-  min-height: 100vh; 
-  padding-bottom: 140px;
-  box-sizing: border-box;
+/* Hide reCAPTCHA badge on marketplace */
+.marketplace-page .grecaptcha-badge {
+  visibility: hidden !important;
+  opacity: 0 !important;
+  display: none !important;
+}
+
+.search-bar-container {
   width: 100%;
+  display: flex;
+  justify-content: center;
+  margin: 1.5rem 0; 
 }
 
 .search-bar {
@@ -16,15 +21,6 @@
   align-items: center;
   padding: 0 1rem;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-}
-
-.search-bar-container {
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin: 1.5rem 0 -1rem 0; 
-  position: relative;
 }
 
 .search-icon {
@@ -48,58 +44,10 @@
   font-size: 0.9rem;
 }
 
-.suggestions-box {
-  position: absolute;
-  top: 2.8rem; 
-  left: 50%;
-  transform: translateX(-50%);
-  width: 561px;
-  max-height: 250px;
-  overflow-y: auto;
-  background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  z-index: 2000;
-}
-
-.suggestions-box li {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px;
-  cursor: pointer;
-  transition: background 0.2s ease;
-}
-
-.suggestions-box li:hover {
-  background: rgba(175, 121, 40, 0.1); 
-}
-
-.suggestions-box img {
-  width: 40px;
-  height: 40px;
-  object-fit: cover;
-  border-radius: 5px;
-}
-
-.suggestions-box span {
-  font-size: 0.9rem;
-  color: #333;
-}
-
-.suggestion-artist {
-  margin-left: auto;
-  font-size: 0.8rem;
-  color: #777;
-}
-
 .carousel-section {
   width: 100%;
   height: 20rem;
-  margin: 50 auto;
+  margin: 0 auto;
   position: relative;
   border: 1px solid #ddd;
   overflow: hidden;
@@ -189,33 +137,30 @@
 }
 
 .product-info {
+  height: 85px;
   background: #2E3F36;
-  width: 100%;
-  height: auto; 
-  text-align: center;
-  color: #fff;
-  padding: 6px 0; 
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  text-align: center;
+  padding: 0.5rem;
 }
 
 .product-name {
   font-size: 1rem;
   font-weight: 600;
-  margin: 0;
+  margin-bottom: 0.25rem;
 }
-
 .product-artist {
-  font-size: 0.85rem;
-  opacity: 0.85;
-  margin: 0;
-}
-
-.product-price {
   font-size: 0.9rem;
+  opacity: 0.9;
+}
+.product-price {
+  font-size: 0.95rem;
   font-weight: 500;
-  margin: 2px 0 0 0;
+  margin-top: 0.25rem;
 }
 
 .product-card {
@@ -234,15 +179,21 @@
   height: 378px;
   position: relative;
   overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f5f5f5;
 }
 
 .product-image {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center;
   position: absolute;
-  top: 0;
-  left: 0;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   transition: opacity 0.3s ease-in-out;
 }
 
@@ -255,47 +206,6 @@
 }
 
 .product-card:hover .product-image.hover {
-  opacity: 1;
-}
-
-.add-cart-button {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  background: #AF7928;
-  color: #fff;
-  border: none;
-  padding: 6px 10px;
-  font-size: 0.85rem;
-  font-family: poppins, sans-serif;
-  border-radius: 4px;
-  cursor: pointer;
-  opacity: 0.9;
-  transition: background 0.3s ease;
-}
-
-.add-cart-button:hover {
-  background: #8D6020;
-  opacity: 1;
-}
-
-.cart-icon-btn {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  background: #24352c;
-  color: #fff;
-  border: none;
-  padding: 8px 10px;
-  border-radius: 50%;
-  cursor: pointer;
-  font-size: 1rem;
-  opacity: 0.9;
-  transition: background 0.3s ease;
-}
-
-.cart-icon-btn:hover {
-  background: #8d6020;
   opacity: 1;
 }
 
@@ -357,6 +267,15 @@
   color: #000;
   text-align: center;
   margin-bottom: 10px;
+}
+
+.dropdown-user-name {
+  font-size: 14px;
+  color: #2E3F36;
+  text-align: center;
+  margin: 0 0 8px 0;
+  font-weight: 500;
+  opacity: 0.8;
 }
 
 .dropdown-divider {
@@ -566,7 +485,7 @@
   height: 530px;
   border-radius: 5px;
   object-fit: cover;
-  margin-top: -0.10rem;
+  margin-top: 0.10rem;
 }
 
 .modal-right {
@@ -574,7 +493,7 @@
   padding-left: 6rem;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 20px;
 }
 
 .modal-artist {
@@ -584,14 +503,14 @@
 }
 
 .artist-story-btn {
-  width: 10rem;
+  width: 15rem;
   height: 33px;
   margin-top: -0.5rem;
   border: 1px solid #AF7928;
   border-radius: 5px;
   background: transparent;
   color: #000;
-  font-size: 15px;
+  font-size: 1rem;
   cursor: pointer;
   display: flex;
   justify-content: center; 
@@ -615,14 +534,13 @@
   font-size: 1.2rem;
   font-weight: 400;
   color: #000;
-  margin: 1px 0; 
 }
 
 .modal-divider {
   width: 28rem;
   height: 1px;
   background: rgba(0, 0, 0, 0.3);
-  margin: 6px 0;
+  margin: 10px 0;
 }
 
 .modal-quantity-label {
@@ -666,52 +584,36 @@
   letter-spacing: 0.05em;
   line-height: 90%;
   color: #000;
-  margin-top: 1.1rem; 
+  margin-top: 1rem;
 }
 
 .reviews-section {
-  margin-top: -4px; 
-}
-
-.reviews-section p {
-  font-size: 15px; 
-  margin-top: 4px;
-  color: #000000;
+  margin-top: -9px;
 }
 
 .stars {
   display: flex;
   gap: 5px; 
-  margin: -1px 0; 
+  margin: 3px 0; 
 }
 
-.star-btn {
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-}
-
-.star-btn:focus {
-  outline: none;
-}
-
-.star-btn:focus-visible {
-  box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.6); 
-  border-radius: 50%; 
+.reviews-section p {
+  font-size: 16px;
+  margin-top: 8px;  
+  color: #000000;
 }
 
 .add-to-cart-btn {
   font-family: poppins, sans-serif;
   width: 28rem;
-  height: 50px;
+  height: 66px;
   border-radius: 5px;
   background-color: #2E3F36;
   color: #fff;
-  font-size: 1.1rem;
+  font-size: 18px;
   border: none;
   cursor: pointer;
-  margin-top: 10px;
+  margin-top: 20px;
   transition: background 0.3s ease;
 }
 
@@ -719,17 +621,6 @@
   background-color: #24352c; 
 }
 
-.add-to-cart-btn.added {
-  background-color: #AF7928;
-  color: #fff;
-  font-weight: 600;
-}
-
-.modal-quantity button:hover {
-  background: rgba(0, 0, 0, 0.259); 
-  border-radius: 2px;
-  transition: background 0.2s ease;
-}
 
 .modal-content {
   display: flex;
@@ -759,16 +650,17 @@
 .about-box {
   border: 1px solid #ccc;
   border-radius: 5px;
-  padding: 12px;
-  margin-top: 10px;
+  padding: 15px;
+  margin-top: 15px;
   background: transparent;
 }
 
 .about-box p {
-  margin: 3px 0; 
+  margin: 5px 0;
   font-size: 14px;
   color: #000;
 }
+
 
 @media (max-width: 1200px) {
   .product-grid {

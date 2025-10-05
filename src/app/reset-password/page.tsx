@@ -4,6 +4,9 @@ import { useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+import PasswordStrengthMeter from "@/components/PasswordStrengthMeter";
+import { useCsrfToken, getCsrfHeaders } from "@/lib/useCsrfToken";
+import type { PasswordStrength } from "@/lib/passwordPolicy";
 import "./reset-password.css";
 
 export default function ResetPasswordPage() {
@@ -15,59 +18,23 @@ export default function ResetPasswordPage() {
   const [message, setMessage] = useState("");
   const [isSuccess, setIsSuccess] = useState(false);
   const [isValidToken, setIsValidToken] = useState(true);
-  const [passwordStrength, setPasswordStrength] = useState(0);
-  const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [tokenState, setTokenState] = useState<'valid' | 'invalid' | 'expired' | 'used'>('valid');
+  const [passwordStrength, setPasswordStrength] = useState<PasswordStrength | null>(null);
+  const [isPasswordBreached, setIsPasswordBreached] = useState(false);
   
   const searchParams = useSearchParams();
   const router = useRouter();
   const token = searchParams?.get('token');
   const email = searchParams?.get('email');
+  const { csrfToken, loading: csrfLoading } = useCsrfToken();
 
   useEffect(() => {
     if (!token || !email) {
       setIsValidToken(false);
+      setTokenState('invalid');
       setMessage('Invalid reset link. Please request a new password reset.');
     }
   }, [token, email]);
-
-  // Password strength calculation
-  useEffect(() => {
-    const calculateStrength = (pwd: string) => {
-      let strength = 0;
-      const errors: string[] = [];
-
-      if (pwd.length >= 8) strength += 25;
-      else errors.push("At least 8 characters");
-
-      if (/[a-z]/.test(pwd)) strength += 25;
-      else errors.push("One lowercase letter");
-
-      if (/[A-Z]/.test(pwd)) strength += 25;
-      else errors.push("One uppercase letter");
-
-      if (/[0-9]/.test(pwd)) strength += 25;
-      else errors.push("One number");
-
-      setPasswordStrength(strength);
-      setValidationErrors(errors);
-    };
-
-    calculateStrength(password);
-  }, [password]);
-
-  const getStrengthColor = () => {
-    if (passwordStrength <= 25) return "#ff4757";
-    if (passwordStrength <= 50) return "#ffa502";
-    if (passwordStrength <= 75) return "#ff6b35";
-    return "#2ed573";
-  };
-
-  const getStrengthText = () => {
-    if (passwordStrength <= 25) return "Weak";
-    if (passwordStrength <= 50) return "Fair";
-    if (passwordStrength <= 75) return "Good";
-    return "Strong";
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,8 +49,16 @@ export default function ResetPasswordPage() {
       return;
     }
 
-    if (passwordStrength < 75) {
+    // Check password strength
+    if (!passwordStrength || passwordStrength.score < 2) {
       setMessage("Please choose a stronger password!");
+      setIsSuccess(false);
+      return;
+    }
+
+    // Warn about breached passwords
+    if (isPasswordBreached) {
+      setMessage("This password has been found in a data breach. Please choose a different password.");
       setIsSuccess(false);
       return;
     }
@@ -92,7 +67,7 @@ export default function ResetPasswordPage() {
     setMessage("");
 
     try {
-      const response = await fetch('/api/auth/reset-password', {
+      const response = await fetch('/api/auth/reset-password', getCsrfHeaders(csrfToken, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -102,13 +77,14 @@ export default function ResetPasswordPage() {
           email, 
           newPassword: password 
         }),
-      });
+      }));
 
       const data = await response.json();
 
       if (data.success) {
         setMessage(data.message);
         setIsSuccess(true);
+        setTokenState('valid');
         // Redirect to login after 4 seconds
         setTimeout(() => {
           router.push('/login?reset=true');
@@ -116,6 +92,18 @@ export default function ResetPasswordPage() {
       } else {
         setMessage(data.message || 'An error occurred. Please try again.');
         setIsSuccess(false);
+        
+        // Set token state based on error code
+        if (data.errorCode === 'TOKEN_EXPIRED') {
+          setTokenState('expired');
+          setIsValidToken(false);
+        } else if (data.errorCode === 'TOKEN_USED') {
+          setTokenState('used');
+          setIsValidToken(false);
+        } else if (data.errorCode === 'INVALID_TOKEN') {
+          setTokenState('invalid');
+          setIsValidToken(false);
+        }
       }
     } catch (error) {
       console.error('Reset password error:', error);
@@ -128,6 +116,72 @@ export default function ResetPasswordPage() {
 
   return (
     <div className="reset-app-container">
+      {/* Left Panel - Hero Section */}
+      <div className="left-panel">
+        <div className="pattern-overlay">
+          <Image
+            src="/left-panel.svg"
+            alt="Pattern"
+            className="left-pattern"
+            fill
+            sizes="60px"
+          />
+        </div>
+        
+        <div className="left-content">
+          <div className="logo-section">
+            <div className="logo-icon">
+              <Image
+                src="/logo.svg"
+                alt="GrowLokal Logo"
+                className="logo-image"
+                fill
+                sizes="40px"
+              />
+            </div>
+            <span className="logo-text">GrowLokal</span>
+          </div>
+
+          <div className="hero-section">
+            <h1 className="hero-title">Secure Your Account</h1>
+            <p className="hero-subtitle">
+              Create a strong, unique password to protect your account and personal information.
+            </p>
+
+            <div className="hero-image">
+              <Image
+                src="/slide2.jpg"
+                alt="Security Illustration"
+                className="craft-image"
+                fill
+                sizes="(max-width: 768px) 100vw, 400px"
+                priority
+              />
+            </div>
+
+            <ul className="features-list">
+              <li className="feature-item">
+                <i className="fas fa-shield-alt"></i>
+                <span>Bank-level encryption protects your password</span>
+              </li>
+              <li className="feature-item">
+                <i className="fas fa-clock"></i>
+                <span>Reset links expire after 1 hour for security</span>
+              </li>
+              <li className="feature-item">
+                <i className="fas fa-check-circle"></i>
+                <span>One-time use tokens prevent unauthorized access</span>
+              </li>
+              <li className="feature-item">
+                <i className="fas fa-user-lock"></i>
+                <span>Your data is always private and secure</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      {/* Right Panel - Form Section */}
       <div className="main-content">
         <div className="back-button">
           <Link href="/login">
@@ -137,20 +191,6 @@ export default function ResetPasswordPage() {
         </div>
 
         <div className="reset-container">
-          <div className="brand-header">
-            <div className="logo-section">
-              <div className="logo-icon">
-                <Image
-                  src="/logo.svg"
-                  alt="GrowLokal Logo"
-                  className="logo-image"
-                  fill
-                />
-              </div>
-              <span className="logo-text">GrowLokal</span>
-            </div>
-          </div>
-
           <div className="reset-header">
             <div className="lock-icon">
               <i className="fas fa-key"></i>
@@ -176,10 +216,29 @@ export default function ResetPasswordPage() {
           {!isValidToken ? (
             <div className="invalid-token">
               <div className="invalid-icon">
-                <i className="fas fa-times-circle"></i>
+                <i className={`fas ${
+                  tokenState === 'expired' ? 'fa-clock' : 
+                  tokenState === 'used' ? 'fa-check-circle' : 
+                  'fa-times-circle'
+                }`}></i>
               </div>
-              <p>This reset link is invalid or has expired.</p>
-              <Link href="/forgot-password" className="retry-link">
+              <p>
+                {tokenState === 'expired' && 'This password reset link has expired. Links are valid for 1 hour.'}
+                {tokenState === 'used' && 'This password reset link has already been used.'}
+                {tokenState === 'invalid' && 'This password reset link is invalid.'}
+              </p>
+              <div style={{ marginTop: '15px', fontSize: '14px', color: '#666' }}>
+                {tokenState === 'expired' && (
+                  <p>Password reset links expire after 1 hour for security reasons.</p>
+                )}
+                {tokenState === 'used' && (
+                  <p>Each reset link can only be used once. If you need to reset your password again, please request a new link.</p>
+                )}
+                {tokenState === 'invalid' && (
+                  <p>The link may be corrupted or incomplete. Please copy and paste the entire link from your email.</p>
+                )}
+              </div>
+              <Link href="/forgot-password" className="retry-link" style={{ marginTop: '20px', display: 'inline-block' }}>
                 <i className="fas fa-redo"></i>
                 Request New Reset Link
               </Link>
@@ -202,33 +261,16 @@ export default function ResetPasswordPage() {
                 ></i>
               </div>
 
+              {/* Password Strength Meter */}
               {password && (
-                <div className="password-strength">
-                  <div className="strength-bar">
-                    <div 
-                      className="strength-fill" 
-                      style={{ 
-                        width: `${passwordStrength}%`, 
-                        backgroundColor: getStrengthColor() 
-                      }}
-                    ></div>
-                  </div>
-                  <div className="strength-info">
-                    <span className="strength-text" style={{ color: getStrengthColor() }}>
-                      {getStrengthText()}
-                    </span>
-                    {validationErrors.length > 0 && (
-                      <div className="requirements">
-                        <span>Missing:</span>
-                        <ul>
-                          {validationErrors.map((error, index) => (
-                            <li key={index}>{error}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                </div>
+                <PasswordStrengthMeter
+                  password={password}
+                  checkBreaches={true}
+                  onChange={(strength, breached) => {
+                    setPasswordStrength(strength);
+                    setIsPasswordBreached(breached || false);
+                  }}
+                />
               )}
 
               <div className="input-group">
@@ -256,7 +298,7 @@ export default function ResetPasswordPage() {
               <button 
                 type="submit" 
                 className={`reset-button ${isSuccess ? 'success' : ''}`}
-                disabled={isLoading || isSuccess || passwordStrength < 75 || password !== confirmPassword}
+                disabled={isLoading || isSuccess || !passwordStrength || passwordStrength.score < 2 || password !== confirmPassword}
               >
                 {isLoading ? (
                   <>

@@ -71,17 +71,18 @@
   gap: 3rem;
   margin: 2rem 0;
   justify-content: center;
-  align-items: stretch; 
 }
 
 .story-card {
   width: 25.5rem;
+  min-height: 517px; 
   background: #fff;
   border-radius: 5px;
   box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.15);
   padding: 1rem;
   display: flex;
   flex-direction: column;
+  align-items: center;
   text-align: center;
   box-sizing: border-box;
   transition: box-shadow 0.3s ease;
@@ -129,8 +130,9 @@
   font-size: 12.5px;
   line-height: 1.6;
   color: #000;
+  margin-bottom: 1rem;
   text-align: left;
-  flex-grow: 1; 
+  align-self: stretch;
 }
 
 .read-more-btn {
@@ -139,33 +141,17 @@
   border-radius: 5px;
   background: #2E3F36;
   color: #fff;
-  font-size: 14px;
+  font-size: 14px; 
   font-weight: 500;
   border: none;
   cursor: pointer;
+  align-self: center;
   transition: background 0.3s ease;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-top: auto; 
+  display: flex;            
+  justify-content: center;  
+  align-items: center;      
 }
 
 .read-more-btn:hover {
   background: #1E2A25;
-}
-
-.hero-image {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-}
-
-.craft-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
 }
