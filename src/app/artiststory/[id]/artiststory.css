@@ -1,0 +1,143 @@
+.artiststory-page {
+  display: flex;
+  justify-content: center; 
+  align-items: center;    
+  min-height: 100vh;       
+  background: #ffffff; 
+  font-family: "Poppins", sans-serif;
+  padding: 2rem 0;         
+  box-sizing: border-box;
+}
+
+.artiststory-page h1 {
+  display: flex;
+  justify-content: center; 
+  align-items: center;     
+  font-family: "Poppins", sans-serif;
+  font-weight: 600;
+  color: #2e3f36;
+  padding: 1rem 0;         
+  margin: 2rem auto;
+}
+
+.artiststory-box {
+  position: relative;
+  width: 1352px;
+  background: #ffffff;
+  border-radius: 5px;
+  box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.25);
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0;            
+  transition: box-shadow 0.3s ease; 
+}
+
+.artiststory-box:hover {
+  box-shadow: 0px 6px 25px rgba(0, 0, 0, 0.35); 
+}
+
+.artiststory-img {
+  width: 493.62px;
+  height: 279px;
+  border-radius: 5px;
+  border: 2px solid #2e3f36;
+  object-fit: cover;
+  margin-bottom: -1rem;
+}
+
+.artiststory-title {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #2e3f36;
+  margin: 0.3rem 0 0.2rem 0; 
+}
+
+.artiststory-artist {
+  font-size: 1.3rem;
+  font-weight: 300;
+  letter-spacing: 0.07em;
+  color: #af7928;
+  margin-bottom: 1rem; 
+  margin-top: -2rem;     
+  text-align: center;
+}
+
+.artiststory-excerpt {
+  font-size: 0.9rem;
+  font-weight: 400;
+  line-height: 1.7;
+  color: #000;
+  text-align: left;
+  max-width: 1000px;
+  margin-bottom: 1.2rem; /* reduced bottom margin */
+  margin-top: 0;         /* remove any top margin */
+}
+
+.artiststory-btn {
+  width: 10rem;
+  height: 3rem;
+  border-radius: 5px;
+  background: #2e3f36;
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: background 0.3s ease;
+  font-family: poppins;
+}
+
+.artiststory-btn:hover {
+  background: #1e2a25;
+}
+
+.story-back-button {
+  position: absolute;
+  top: 1.5rem;
+  left: 1.8rem;
+  z-index: 1000;
+  width: 50px;
+  height: 50px;
+  background: #ffffff;
+  border: 2px solid #af7928;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  color: #2e3f36;
+  font-size: 22px;
+  font-weight: 900;
+  cursor: pointer;
+  transition: box-shadow 0.2s ease, transform 0.1s ease;
+}
+
+.story-back-button:hover {
+  background: #AF7928;
+  color: #fff;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  transform: translateY(-2px);
+}
+
+@media (max-width: 1400px) {
+  .artiststory-box {
+    width: 90%;
+    padding: 1.5rem;
+  }
+
+  .artiststory-img {
+    width: 80%;
+    height: auto;
+  }
+
+  .artiststory-title {
+    font-size: 36px;
+  }
+
+  .artiststory-artist {
+    font-size: 20px;
+  }
+
+  .artiststory-excerpt {
+    max-width: 100%;
+  }
+}
