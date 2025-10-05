@@ -258,10 +258,11 @@
 
 .form-label {
   width: 120px;
-  font-size: 14px;
-  color: #000;
+  font-size: 15px;
+  color: #2e3f36;
   flex-shrink: 0;
   text-align: left;
+  font-weight: 600;
 }
 
 .form-input {
@@ -272,7 +273,7 @@
   border-radius: 3px;
   background: transparent;
   padding: 0 10px;
-  font-size: 14px;
+  font-size: 15px;
   font-family: poppins, sans-serif;
   box-sizing: border-box;
 }
@@ -811,3 +812,323 @@
     opacity: 1;
   }
 }
+
+/* ========== RESPONSIVE DESIGN ========== */
+
+/* Tablet and below (max-width: 1024px) */
+@media (max-width: 1024px) {
+  .profile-page-wrapper {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .profile-container {
+    width: 100%;
+    max-width: 500px;
+    margin: 15px auto;
+  }
+
+  .profile-details-box {
+    width: 100%;
+    max-width: 100%;
+    padding: 32px 24px;
+    margin: 0;
+  }
+
+  .profile-details-inner-box {
+    padding: 24px 20px;
+  }
+
+  .double-row {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .form-group {
+    width: 100%;
+  }
+
+  .form-input.short-input {
+    flex: 1;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .orders-nav {
+    padding: 0 20px;
+  }
+
+  .orders-search {
+    width: calc(100% - 40px);
+  }
+
+  .order-status-msg {
+    position: static;
+    margin: 8px 0 0 0;
+  }
+}
+
+/* Mobile landscape and below (max-width: 768px) */
+@media (max-width: 768px) {
+  .profile-container {
+    width: calc(100% - 30px);
+    margin: 15px;
+    padding-top: 30px;
+  }
+
+  .profile-picture {
+    width: 100px;
+    height: 100px;
+    margin-bottom: 24px;
+  }
+
+  .profile-name {
+    font-size: 18px;
+  }
+
+  .profile-divider {
+    width: 90%;
+  }
+
+  .profile-section {
+    padding-left: 20px;
+    margin-bottom: 1.5rem;
+  }
+
+  .profile-section-label {
+    margin-left: 35px;
+    font-size: 14px;
+  }
+
+  .profile-details-box {
+    padding: 24px 16px;
+  }
+
+  .profile-details-title {
+    font-size: 1.5rem;
+  }
+
+  .profile-details-inner-box {
+    padding: 20px 16px;
+  }
+
+  .form-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .form-label {
+    width: 100%;
+    margin-bottom: 4px;
+  }
+
+  .form-input {
+    width: 100%;
+  }
+
+  .gender-options {
+    flex-wrap: wrap;
+  }
+
+  .orders-nav {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding: 0 16px;
+  }
+
+  .orders-tab {
+    font-size: 13px;
+    padding: 10px 8px;
+    white-space: nowrap;
+    min-width: 80px;
+  }
+
+  .orders-tab.active::after {
+    width: 40px;
+  }
+
+  .orders-search {
+    width: calc(100% - 32px);
+    margin: 12px auto;
+  }
+
+  .order-card {
+    padding: 12px;
+  }
+
+  .order-body {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .order-product-img {
+    width: 100%;
+    max-width: 200px;
+    height: auto;
+  }
+
+  .order-footer {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .order-btn,
+  .order-btn-pending {
+    width: 100%;
+    text-align: center;
+  }
+
+  .modal-content {
+    min-width: 280px;
+    padding: 24px 20px;
+  }
+
+  .progress-line {
+    width: 60px;
+    margin: 0 8px;
+  }
+}
+
+/* Small mobile (max-width: 480px) */
+@media (max-width: 480px) {
+  .profile-container {
+    width: calc(100% - 20px);
+    margin: 10px;
+    padding-top: 24px;
+  }
+
+  .profile-picture {
+    width: 80px;
+    height: 80px;
+    margin-bottom: 20px;
+  }
+
+  .profile-name {
+    font-size: 16px;
+    margin-bottom: 12px;
+  }
+
+  .edit-profile-row {
+    font-size: 13px;
+  }
+
+  .profile-section {
+    padding-left: 16px;
+  }
+
+  .profile-section-title {
+    font-size: 14px;
+  }
+
+  .profile-section-label {
+    margin-left: 30px;
+    font-size: 13px;
+  }
+
+  .profile-details-box {
+    padding: 20px 12px;
+    margin-top: 10px;
+  }
+
+  .profile-details-title {
+    font-size: 1.3rem;
+    margin-bottom: 16px;
+  }
+
+  .profile-details-inner-box {
+    padding: 16px 12px;
+    min-height: 300px;
+  }
+
+  .profile-upload-image {
+    width: 120px;
+    height: 120px;
+  }
+
+  .profile-upload-btn {
+    width: 6rem;
+    height: 1.8rem;
+    font-size: 13px;
+  }
+
+  .form-label {
+    font-size: 14px;
+  }
+
+  .form-input {
+    height: 32px;
+    font-size: 14px;
+  }
+
+  .save-btn {
+    width: 100%;
+    padding: 10px 16px;
+  }
+
+  .orders-tab {
+    font-size: 12px;
+    padding: 8px 6px;
+    min-width: 70px;
+  }
+
+  .orders-search {
+    height: 32px;
+  }
+
+  .orders-search-input {
+    font-size: 13px;
+  }
+
+  .order-product-name {
+    font-size: 13px;
+  }
+
+  .order-product-qty {
+    font-size: 11px;
+  }
+
+  .order-price {
+    font-size: 13px;
+  }
+
+  .order-btn,
+  .order-btn-pending {
+    font-size: 12px;
+    padding: 5px 10px;
+  }
+
+  .view-store-btn {
+    font-size: 12px;
+    padding: 4px 12px;
+  }
+
+  .modal-content {
+    min-width: 260px;
+    padding: 20px 16px;
+  }
+
+  .modal-content h3 {
+    font-size: 1.1rem;
+  }
+
+  .modal-content p {
+    font-size: 13px;
+  }
+
+  .progress-line {
+    width: 40px;
+    margin: 0 6px;
+  }
+
+  .circle {
+    width: 20px;
+    height: 20px;
+  }
+
+  .label {
+    font-size: 12px;
+  }
+}
+
+

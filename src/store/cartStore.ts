@@ -26,6 +26,7 @@ interface CartStore {
   updateQuantity: (productId: string, quantity: number) => Promise<void>;
   removeItem: (productId: string) => Promise<void>;
   clearCart: () => Promise<void>;
+  clearLocalCart: () => void;
   calculateTotals: () => void;
   mergeCart: () => Promise<void>;
 }
@@ -158,9 +159,28 @@ export const useCartStore = create<CartStore>()(
         }
       },
 
-      // Clear entire cart
+      // Clear entire cart (local state only, doesn't touch database)
+      clearLocalCart: () => {
+        set({
+          items: [],
+          subtotal: 0,
+          itemCount: 0,
+          isLoading: false,
+          error: null,
+        });
+      },
+
+      // Clear entire cart (including database)
       clearCart: async () => {
-        set({ isLoading: true, error: null });
+        // Clear cart immediately in UI (don't wait for API)
+        set({
+          items: [],
+          subtotal: 0,
+          itemCount: 0,
+          isLoading: false,
+          error: null,
+        });
+        
         try {
           const response = await fetch('/api/cart', {
             method: 'DELETE',
@@ -168,19 +188,12 @@ export const useCartStore = create<CartStore>()(
 
           const data = await response.json();
 
-          if (data.success) {
-            set({
-              items: [],
-              subtotal: 0,
-              itemCount: 0,
-              isLoading: false,
-            });
-          } else {
-            throw new Error(data.message || 'Failed to clear cart');
+          if (!data.success) {
+            console.warn('Cart clear API failed:', data.message);
           }
         } catch (error: any) {
           console.error('Error clearing cart:', error);
-          set({ error: error.message, isLoading: false });
+          // Don't revert the UI state even if API fails
         }
       },
 

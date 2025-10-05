@@ -18,15 +18,21 @@ export default function Navbar() {
 
   const { data: session } = useSession();
   const router = useRouter();
-  const { items, subtotal, itemCount, fetchCart, removeItem } = useCartStore();
+  const { items, subtotal, itemCount, fetchCart, removeItem, clearLocalCart } = useCartStore();
   const notifRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
   const cartRef = useRef<HTMLDivElement>(null);
 
-  // Fetch cart on mount
+  // Fetch cart on mount and when session changes
   useEffect(() => {
-    fetchCart();
-  }, [fetchCart]);
+    if (session?.user) {
+      // User is logged in, fetch their cart
+      fetchCart();
+    } else {
+      // User is logged out, clear local cart only (don't touch database)
+      clearLocalCart();
+    }
+  }, [session?.user, fetchCart, clearLocalCart]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -107,33 +113,15 @@ export default function Navbar() {
           </div>
 
           <div className="icon-wrapper" ref={cartRef}>
-            <div style={{ position: 'relative', display: 'inline-block' }}>
-              <FaShoppingCart
-                className="nav-icon"
-                onClick={() => setShowCart(!showCart)}
-              />
-              {itemCount > 0 && (
-                <span 
-                  style={{
-                    position: 'absolute',
-                    top: '-8px',
-                    right: '-8px',
-                    backgroundColor: '#ff4444',
-                    color: 'white',
-                    borderRadius: '50%',
-                    width: '20px',
-                    height: '20px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '12px',
-                    fontWeight: 'bold',
-                  }}
-                >
-                  {itemCount > 99 ? '99+' : itemCount}
-                </span>
-              )}
-            </div>
+            <FaShoppingCart
+              className="nav-icon"
+              onClick={() => setShowCart(!showCart)}
+            />
+            {itemCount > 0 && (
+              <span className="cart-badge">
+                {itemCount > 99 ? '99+' : itemCount}
+              </span>
+            )}
             {showCart && (
               <div className="dropdown dropdown-cart">
                 <h3 className="dropdown-title">Shopping Cart</h3>
@@ -143,7 +131,7 @@ export default function Navbar() {
                   <p className="dropdown-text">Your cart is empty</p>
                 ) : (
                   <>
-                    <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                    <div className="cart-items-list">
                       {items.map((item) => (
                         <div key={item.productId} className="cart-item">
                           <img
@@ -159,14 +147,7 @@ export default function Navbar() {
                           </div>
                           <button
                             onClick={() => removeItem(item.productId)}
-                            style={{
-                              background: 'none',
-                              border: 'none',
-                              color: '#ff4444',
-                              cursor: 'pointer',
-                              fontSize: '18px',
-                              padding: '0 5px',
-                            }}
+                            className="cart-item-remove"
                             title="Remove item"
                           >
                             ×
@@ -176,7 +157,7 @@ export default function Navbar() {
                     </div>
 
                     <hr className="dropdown-divider" />
-                    <div style={{ padding: '10px 0', fontWeight: 'bold' }}>
+                    <div className="cart-subtotal">
                       Subtotal: ₱{subtotal.toFixed(2)}
                     </div>
                   </>
@@ -189,10 +170,6 @@ export default function Navbar() {
                     router.push('/cart');
                   }}
                   disabled={items.length === 0}
-                  style={{
-                    opacity: items.length === 0 ? 0.5 : 1,
-                    cursor: items.length === 0 ? 'not-allowed' : 'pointer',
-                  }}
                 >
                   GO TO CART
                 </button>
@@ -213,7 +190,10 @@ export default function Navbar() {
                 )}
                 <hr className="dropdown-divider" />
                 <ul className="profile-menu">
-                  <li>My Account</li>
+                  <li onClick={() => {
+                    setShowProfile(false);
+                    router.push('/profile');
+                  }}>My Account</li>
                   <li>My Orders</li>
                   <li onClick={handleLogoutClick}>Logout</li>
                 </ul>

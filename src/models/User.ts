@@ -17,6 +17,21 @@ export interface IUser extends mongoose.Document {
   failedLoginAttempts: number;
   lastFailedLogin: Date | null;
   accountLockedUntil: Date | null;
+  // Profile fields
+  fullName?: string;
+  phone?: string;
+  address?: {
+    street?: string;
+    barangay?: string;
+    city?: string;
+    province?: string;
+    region?: string;
+    postalCode?: string;
+  };
+  gender?: 'male' | 'female' | 'other' | '';
+  profilePicture?: string;
+  isSeller: boolean;
+  shopId?: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
@@ -96,6 +111,41 @@ const UserSchema = new mongoose.Schema<IUser>(
     },
     accountLockedUntil: {
       type: Date,
+      default: null,
+    },
+    // Profile fields
+    fullName: {
+      type: String,
+      trim: true,
+    },
+    phone: {
+      type: String,
+      trim: true,
+    },
+    address: {
+      street: { type: String, trim: true },
+      barangay: { type: String, trim: true },
+      city: { type: String, trim: true },
+      province: { type: String, trim: true },
+      region: { type: String, trim: true },
+      postalCode: { type: String, trim: true },
+    },
+    gender: {
+      type: String,
+      enum: ['male', 'female', 'other', ''],
+      default: '',
+    },
+    profilePicture: {
+      type: String,
+      default: '/default-profile.jpg',
+    },
+    isSeller: {
+      type: Boolean,
+      default: false,
+    },
+    shopId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Shop',
       default: null,
     },
   },

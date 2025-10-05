@@ -69,15 +69,16 @@ a {
   scrollbar-color: #c6882b #D9D9D9;
 }
 
-/* reCAPTCHA badge styling */
+/* reCAPTCHA badge styling - Hidden by default */
 .grecaptcha-badge {
+  visibility: hidden !important;
+  opacity: 0 !important;
+}
+
+/* Show reCAPTCHA badge only on login and signup pages */
+body[data-page="login"] .grecaptcha-badge,
+body[data-page="signup"] .grecaptcha-badge {
   visibility: visible !important;
   opacity: 1 !important;
   z-index: 9999 !important;
-}
-
-/* Ensure reCAPTCHA iframe is visible */
-iframe[src*="recaptcha"] {
-  visibility: visible !important;
-  opacity: 1 !important;
 }

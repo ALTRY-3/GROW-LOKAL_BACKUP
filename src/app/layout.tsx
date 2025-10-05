@@ -6,6 +6,7 @@ import Chatbot from "@/components/Chatbot";
 import AuthProvider from "@/components/AuthProvider";
 import RecaptchaProvider from "@/components/RecaptchaProvider";
 import RecaptchaDebug from "@/components/RecaptchaDebug";
+import PageIdentifier from "@/components/PageIdentifier";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -36,6 +37,7 @@ export default function RootLayout({
       <body className={poppins.className}>
         <AuthProvider>
           <RecaptchaProvider>
+            <PageIdentifier />
             <RecaptchaDebug />
             {children}
             {/* Chatbot stays on all pages */}

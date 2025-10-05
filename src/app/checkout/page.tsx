@@ -74,8 +74,8 @@ export default function CheckoutPage() {
       setIsLoading(true);
       setError("");
 
-      // Load cart items from sessionStorage
-      const storedCart = sessionStorage.getItem("checkoutCart");
+      // Load cart items from sessionStorage (key set by cart page)
+      const storedCart = sessionStorage.getItem("checkoutItems");
       if (storedCart) {
         const parsedCart = JSON.parse(storedCart);
         setCheckoutItems(parsedCart);
@@ -94,23 +94,24 @@ export default function CheckoutPage() {
       setUserAddress(testAddress);
       setSavedAddresses([testAddress]);
 
-      // Try to fetch real data if session exists
-      if (session?.user) {
-        try {
-          const response = await fetch("/api/user/profile");
-          const contentType = response.headers.get("content-type");
-          
-          if (response.ok && contentType?.includes("application/json")) {
-            const data = await response.json();
-            if (data.address) {
-              setUserAddress(data.address);
-              setSavedAddresses([data.address]);
-            }
-          }
-        } catch (err) {
-          console.log("Using test address");
-        }
-      }
+      // TODO: Uncomment when /api/user/profile endpoint is created
+      // Try to fetch real user data if session exists
+      // if (session?.user) {
+      //   try {
+      //     const response = await fetch("/api/user/profile");
+      //     const contentType = response.headers.get("content-type");
+      //     
+      //     if (response.ok && contentType?.includes("application/json")) {
+      //       const data = await response.json();
+      //       if (data.address) {
+      //         setUserAddress(data.address);
+      //         setSavedAddresses([data.address]);
+      //       }
+      //     }
+      //   } catch (err) {
+      //     console.log("Using test address as fallback");
+      //   }
+      // }
     } catch (err) {
       console.error("Error loading checkout data:", err);
       setError("Failed to load checkout data");
@@ -184,7 +185,7 @@ export default function CheckoutPage() {
 
       // Clear cart after successful order
       await clearCart();
-      sessionStorage.removeItem("checkoutCart");
+      sessionStorage.removeItem("checkoutItems");
 
       // Show success modal
       setShowSuccessModal(true);

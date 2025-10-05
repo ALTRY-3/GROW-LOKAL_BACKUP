@@ -1,13 +1,26 @@
 "use client";
 
 import { useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 
 export default function RecaptchaDebug() {
+  const pathname = usePathname();
+  
   useEffect(() => {
+    // Only debug reCAPTCHA on login and signup pages
+    const shouldLoadRecaptcha = pathname === '/login' || pathname === '/signup';
+    
     console.log('=== reCAPTCHA Debug Info ===');
+    console.log('Current page:', pathname);
+    console.log('Should load reCAPTCHA:', shouldLoadRecaptcha);
     console.log('NEXT_PUBLIC_RECAPTCHA_SITE_KEY:', process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY);
     console.log('Environment:', process.env.NODE_ENV);
     console.log('Window grecaptcha:', typeof window !== 'undefined' ? (window as any).grecaptcha : 'undefined');
+    
+    if (!shouldLoadRecaptcha) {
+      console.log('ℹ️ reCAPTCHA not loaded on this page (only loads on /login and /signup)');
+      return;
+    }
     
     if (typeof window !== 'undefined') {
       const checkInterval = setInterval(() => {
@@ -26,7 +39,7 @@ export default function RecaptchaDebug() {
         }
       }, 10000);
     }
-  }, []);
+  }, [pathname]);
 
   return null;
 }

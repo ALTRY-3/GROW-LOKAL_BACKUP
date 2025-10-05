@@ -138,7 +138,22 @@ export default function Marketplace() {
     setSelectedProduct(convertToLegacyProduct(product));
   };
 
-  // Loading skeleton - removed, now using inline skeleton cards in sections
+  // Loading state with brown spinner
+  if (loading && handicrafts.length === 0 && fashion.length === 0 && 
+      home.length === 0 && food.length === 0 && beauty.length === 0) {
+    return (
+      <div className="marketplace-page">
+        <Navbar />
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '70vh' }}>
+          <div style={{ textAlign: 'center' }}>
+            <i className="fas fa-spinner fa-spin" style={{ fontSize: '48px', color: '#AF7928' }}></i>
+            <p style={{ marginTop: '20px', color: '#2e3f36', fontSize: '18px', fontWeight: '500' }}>Loading marketplace...</p>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   // Error state
   if (error) {
@@ -223,48 +238,43 @@ export default function Marketplace() {
         <div className="carousel-text">Discover local treasures.</div>
       </div>
 
-      {(loading || handicrafts.length > 0) && (
+      {handicrafts.length > 0 && (
         <Section
           title="HANDICRAFTS"
           products={handicrafts}
           onProductClick={handleProductClick}
-          loading={loading}
         />
       )}
       
-      {(loading || fashion.length > 0) && (
+      {fashion.length > 0 && (
         <Section
           title="FASHION"
           products={fashion}
           onProductClick={handleProductClick}
-          loading={loading}
         />
       )}
       
-      {(loading || home.length > 0) && (
+      {home.length > 0 && (
         <Section
           title="HOME"
           products={home}
           onProductClick={handleProductClick}
-          loading={loading}
         />
       )}
       
-      {(loading || food.length > 0) && (
+      {food.length > 0 && (
         <Section
           title="FOOD"
           products={food}
           onProductClick={handleProductClick}
-          loading={loading}
         />
       )}
       
-      {(loading || beauty.length > 0) && (
+      {beauty.length > 0 && (
         <Section
           title="BEAUTY & WELLNESS"
           products={beauty}
           onProductClick={handleProductClick}
-          loading={loading}
         />
       )}
 
@@ -315,12 +325,10 @@ function Section({
   title,
   products,
   onProductClick,
-  loading,
 }: {
   title: string;
   products: Product[];
   onProductClick: (product: Product) => void;
-  loading?: boolean;
 }) {
   const { addItem } = useCartStore();
   const [addingProduct, setAddingProduct] = useState<string | null>(null);
@@ -359,19 +367,7 @@ function Section({
     <>
       <div className="section-title">{title}</div>
       <div className="product-grid">
-        {loading ? (
-          // Show skeleton loading cards
-          Array.from({ length: 4 }).map((_, index) => (
-            <div className="product-card skeleton" key={`skeleton-${index}`}>
-              <div className="image-container skeleton-image"></div>
-              <div className="product-info">
-                <div className="skeleton-text"></div>
-                <div className="skeleton-text short"></div>
-              </div>
-            </div>
-          ))
-        ) : (
-          products.map((product) => (
+        {products.map((product) => (
             <div className="product-card" key={product._id}>
               <div className="image-container">
               <img
@@ -468,7 +464,7 @@ function Section({
             </div>
           </div>
         ))
-        )}
+        }
       </div>
     </>
   );

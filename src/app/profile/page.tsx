@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import "./profile.css";
@@ -12,9 +13,10 @@ import {
   FaTags,
   FaSearch,
   FaImage,
+  FaStore,
+  FaBoxOpen,
 } from "react-icons/fa";
 
-// Define regions, provinces, and cities together
 const regionProvinceCityData: Record<string, Record<string, string[]>> = {
   "NCR (Metro Manila)": {
     "Metro Manila": [
@@ -140,7 +142,6 @@ const regionList = [
   "National Capital Region (NCR)",
 ];
 
-// Example: Replace this with your actual user data source
 const mockUser = {
   name: "Venti Batumbakal",
   email: "venti@gmail.com",
@@ -150,10 +151,8 @@ const mockUser = {
   province: "Zambales",
   city: "Olongapo",
   postal: "2200",
-  // removed country - we're using region instead
 };
 
-// add city -> barangay map
 const cityBarangayData: Record<string, string[]> = {
   Olongapo: [
     "Asinan",
@@ -401,15 +400,48 @@ const cityBarangayData: Record<string, string[]> = {
 };
 
 export default function ProfilePage() {
-  const [confirmedOrders, setConfirmedOrders] = useState<Set<string>>(
-    new Set()
-  );
+  const router = useRouter();
+  const { data: session, status } = useSession();
   const searchParams = useSearchParams();
   const querySection = searchParams?.get("section") ?? "profile";
+  
+  // UI State
   const [activeSection, setActiveSection] = useState<string>("profile");
-  const [expandedSection, setExpandedSection] = useState<string | null>(
-    "profile"
-  );
+  const [expandedSection, setExpandedSection] = useState<string | null>("profile");
+  const [activeOrdersTab, setActiveOrdersTab] = useState("All");
+  const [confirmedOrders, setConfirmedOrders] = useState<Set<string>>(new Set());
+
+  // Loading States
+  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
+  const [isLoadingOrders, setIsLoadingOrders] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Error States
+  const [profileError, setProfileError] = useState("");
+  const [ordersError, setOrdersError] = useState("");
+
+  // Profile Data
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [street, setStreet] = useState("");
+  const [province, setProvince] = useState<string>("");
+  const [city, setCity] = useState<string>("");
+  const [postal, setPostal] = useState("");
+  const [region, setRegion] = useState<string>("");
+  const [barangay, setBarangay] = useState<string>("");
+  const [selectedGender, setSelectedGender] = useState<string>("");
+  const [profilePicture, setProfilePicture] = useState<string>("/default-profile.jpg");
+
+  // Orders Data
+  const [orders, setOrders] = useState<any[]>([]);
+
+  // Auth check
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/login");
+    }
+  }, [status, router]);
 
   useEffect(() => {
     if (querySection) {
@@ -429,8 +461,6 @@ export default function ProfilePage() {
     setExpandedSection(expandedSection === section ? null : section);
   };
 
-  const [activeOrdersTab, setActiveOrdersTab] = useState("All");
-
   const findRegionByProvince = (prov?: string) => {
     if (!prov) return "";
     for (const regionKey of Object.keys(regionProvinceCityData)) {
@@ -440,16 +470,251 @@ export default function ProfilePage() {
     return "";
   };
 
-  const [fullName, setFullName] = useState(mockUser.name);
-  const [email, setEmail] = useState(mockUser.email);
-  const [phone, setPhone] = useState(mockUser.phone);
-  const [street, setStreet] = useState(mockUser.street);
-  const [province, setProvince] = useState<string>(mockUser.province);
-  const [city, setCity] = useState<string>(mockUser.city);
-  const [postal, setPostal] = useState(mockUser.postal);
-  const initialRegion = findRegionByProvince(mockUser.province) || "";
-  const [region, setRegion] = useState<string>(initialRegion);
-  const [barangay, setBarangay] = useState<string>("");
+  // Fetch profile data
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!session?.user) return;
+      
+      setIsLoadingProfile(true);
+      setProfileError("");
+      
+      try {
+        const response = await fetch("/api/user/profile");
+        const data = await response.json();
+
+        if (data.success) {
+          setFullName(data.data.fullName || "");
+          setEmail(data.data.email || "");
+          setPhone(data.data.phone || "");
+          setStreet(data.data.address.street || "");
+          setBarangay(data.data.address.barangay || "");
+          setCity(data.data.address.city || "");
+          setProvince(data.data.address.province || "");
+          setRegion(data.data.address.region || "");
+          setPostal(data.data.address.postalCode || "");
+          setSelectedGender(data.data.gender || "");
+          setProfilePicture(data.data.profilePicture || "/default-profile.jpg");
+          setIsSeller(data.data.isSeller || false);
+        } else {
+          setProfileError(data.message || "Failed to load profile");
+        }
+      } catch (error) {
+        console.error("Error fetching profile:", error);
+        setProfileError("Failed to load profile");
+      } finally {
+        setIsLoadingProfile(false);
+      }
+    };
+
+    fetchProfile();
+  }, [session]);
+
+  // Fetch orders
+  useEffect(() => {
+    const fetchOrders = async () => {
+      if (!session?.user || activeSection !== "orders") return;
+
+      setIsLoadingOrders(true);
+      setOrdersError("");
+
+      try {
+        const statusParam = activeOrdersTab === "All" ? "all" : activeOrdersTab.toLowerCase();
+        const response = await fetch(`/api/user/orders?status=${statusParam}`);
+        const data = await response.json();
+
+        if (data.success) {
+          setOrders(data.data || []);
+        } else {
+          setOrdersError(data.message || "Failed to load orders");
+        }
+      } catch (error) {
+        console.error("Error fetching orders:", error);
+        setOrdersError("Failed to load orders");
+      } finally {
+        setIsLoadingOrders(false);
+      }
+    };
+
+    fetchOrders();
+  }, [session, activeSection, activeOrdersTab]);
+
+  // Validation Functions
+  const validateEmail = (email: string) => {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
+  };
+
+  const validatePhone = (phone: string) => {
+    const re = /^(09|\+639)\d{9}$/;
+    return re.test(phone);
+  };
+
+  const validatePostalCode = (code: string) => {
+    return /^\d{4}$/.test(code);
+  };
+
+  const validateProfileForm = () => {
+    const errors = [];
+
+    if (!fullName.trim()) errors.push("Full name is required");
+    if (!email.trim()) errors.push("Email is required");
+    if (!validateEmail(email)) errors.push("Invalid email format");
+    if (phone && !validatePhone(phone)) errors.push("Invalid phone format (09XXXXXXXXX)");
+    if (postal && !validatePostalCode(postal)) errors.push("Invalid postal code (4 digits)");
+    if (!region) errors.push("Region is required");
+    if (!province) errors.push("Province is required");
+    if (!city) errors.push("City is required");
+
+    return errors;
+  };
+
+  // Save Profile Handler
+  const handleSaveProfile = async () => {
+    const errors = validateProfileForm();
+
+    if (errors.length > 0) {
+      alert(errors.join("\n"));
+      return;
+    }
+
+    setIsSaving(true);
+    setProfileError("");
+
+    try {
+      const response = await fetch("/api/user/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fullName,
+          phone,
+          address: {
+            street,
+            barangay,
+            city,
+            province,
+            region,
+            postalCode: postal,
+          },
+          gender: selectedGender,
+          profilePicture,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setShowSaveModal(true);
+        setTimeout(() => setShowSaveModal(false), 2000);
+      } else {
+        setShowSaveError(true);
+        setProfileError(data.message || "Failed to save profile");
+      }
+    } catch (error) {
+      console.error("Save error:", error);
+      setShowSaveError(true);
+      setProfileError("Failed to save profile");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Profile Picture Upload Handler
+  const handleProfilePictureUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file
+    if (!file.type.startsWith("image/")) {
+      alert("Please select an image file");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Image too large. Maximum size is 5MB");
+      return;
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setProfilePicture(data.data.url);
+
+        // Update user profile with new picture
+        await fetch("/api/user/profile", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ profilePicture: data.data.url }),
+        });
+      } else {
+        alert(data.message || "Failed to upload image");
+      }
+    } catch (error) {
+      console.error("Upload error:", error);
+      alert("Failed to upload image");
+    }
+  };
+
+  // Confirm Order Receipt Handler
+  const handleConfirmReceiptAPI = async (orderId: string) => {
+    try {
+      const response = await fetch(`/api/user/orders/${orderId}/confirm`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setConfirmedOrders((prev) => new Set(prev).add(orderId));
+        setActiveOrdersTab("Completed");
+        setSuccessMessage("Order confirmed as received!");
+        setShowSuccessModal(true);
+
+        // Refresh orders
+        const statusParam = activeOrdersTab === "All" ? "all" : activeOrdersTab.toLowerCase();
+        const ordersResponse = await fetch(`/api/user/orders?status=${statusParam}`);
+        const ordersData = await ordersResponse.json();
+        if (ordersData.success) {
+          setOrders(ordersData.data || []);
+        }
+      }
+    } catch (error) {
+      console.error("Error confirming order:", error);
+      alert("Failed to confirm order");
+    }
+  };
+
+  // Rate Order Handler
+  const handleRateOrderAPI = async (orderId: string, rating: number) => {
+    try {
+      const response = await fetch(`/api/user/orders/${orderId}/rate`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rating }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setOrderRatings((prev) => ({ ...prev, [orderId]: rating }));
+        setSuccessMessage("Thank you for rating!");
+        setShowSuccessModal(true);
+        setTimeout(() => setShowSuccessModal(false), 1500);
+      }
+    } catch (error) {
+      console.error("Error rating order:", error);
+      alert("Failed to rate order");
+    }
+  };
 
   const [highlightRegion, setHighlightRegion] = useState(false);
   const regionRef = useRef<HTMLSelectElement | null>(null);
@@ -519,25 +784,15 @@ export default function ProfilePage() {
     setShowConfirmModal(true);
   };
 
-  const confirmReceipt = () => {
+  const confirmReceipt = async () => {
+    if (!pendingOrderId) return;
+    
     setShowConfirmModal(false);
     setLoadingConfirm(true);
 
-    setTimeout(() => {
-      setLoadingConfirm(false);
-
-      // Add order to confirmedOrders
-      setConfirmedOrders((prev) =>
-        pendingOrderId ? new Set(prev).add(pendingOrderId) : prev
-      );
-
-      // Automatically switch to "Completed" tab
-      setActiveOrdersTab("Completed");
-
-      setSuccessMessage("Order has been marked as received!");
-      setShowSuccessModal(true);
-      setPendingOrderId(null);
-    }, 1000);
+    await handleConfirmReceiptAPI(pendingOrderId);
+    setLoadingConfirm(false);
+    setPendingOrderId(null);
   };
 
   const cancelConfirmReceipt = () => {
@@ -545,12 +800,8 @@ export default function ProfilePage() {
     setPendingOrderId(null);
   };
 
-  const handleRateOrder = (orderId: string, rating: number) => {
-    setOrderRatings((prev) => ({ ...prev, [orderId]: rating }));
-    setSuccessMessage("Thank you for rating!");
-    setShowSuccessModal(true);
-
-    setTimeout(() => setShowSuccessModal(false), 1500);
+  const handleRateOrder = async (orderId: string, rating: number) => {
+    await handleRateOrderAPI(orderId, rating);
   };
 
   const [activeStep, setActiveStep] = useState(0);
@@ -567,6 +818,9 @@ export default function ProfilePage() {
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [showProgressModal, setShowProgressModal] = useState(false);
   const [showSubmitModal, setShowSubmitModal] = useState(false);
+
+  const [validIdFile, setValidIdFile] = useState<File | null>(null);
+  const [isSeller, setIsSeller] = useState(false); // Track if user is now a seller
 
   const modalOverlayStyle: React.CSSProperties = {
     position: "fixed",
@@ -604,19 +858,43 @@ export default function ProfilePage() {
     marginBottom: "20px",
   };
 
+  const isShopInfoComplete =
+    shopName.trim() &&
+    pickupBarangay.trim() &&
+    pickupAddress.trim() &&
+    shopEmail.trim() &&
+    phone.trim() &&
+    validIdFile;
+
   return (
     <>
       <Navbar />
       <div className="profile-page-wrapper">
         <div className="profile-container">
-          <div className="profile-picture">
-            <img
-              src="/default-profile.jpg"
-              alt="Profile"
-              style={{ width: "100%", height: "100%", borderRadius: "50%" }}
-            />
-          </div>
-          <div className="profile-name">Venti Batumbakal</div>
+          {isLoadingProfile ? (
+            <div style={{ padding: "40px", textAlign: "center" }}>Loading profile...</div>
+          ) : (
+            <>
+              <div className="profile-picture">
+                <img
+                  src={profilePicture}
+                  alt="Profile"
+                  style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }}
+                />
+                <label className="profile-upload-label" htmlFor="profile-upload-input">
+                  <FaEdit style={{ fontSize: "16px", color: "#af7928" }} />
+                </label>
+                <input
+                  id="profile-upload-input"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleProfilePictureUpload}
+                  className="profile-upload-input"
+                />
+              </div>
+              <div className="profile-name">{fullName || session?.user?.name || "User"}</div>
+            </>
+          )}
           <div className="edit-profile-row">
             <FaEdit className="edit-icon" />
             Edit profile
@@ -677,17 +955,28 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          {/* Start Selling */}
+          {/* Start Selling / My Shop toggle in sidebar */}
           <div className="profile-section">
             <div
+              // when user is a seller, this nav item becomes "myshop"
               className={`profile-section-row ${
-                activeSection === "selling" ? "active" : ""
+                activeSection === (isSeller ? "myshop" : "selling")
+                  ? "active"
+                  : ""
               }`}
-              onClick={() => handleSelectSection("selling")}
+              onClick={() =>
+                handleSelectSection(isSeller ? "myshop" : "selling")
+              }
               tabIndex={0}
             >
-              <FaTags className="profile-section-icon" />
-              <span className="profile-section-title">Start Selling</span>
+              {isSeller ? (
+                <FaStore className="profile-section-icon" />
+              ) : (
+                <FaTags className="profile-section-icon" />
+              )}
+              <span className="profile-section-title">
+                {isSeller ? "My Shop" : "Start Selling"}
+              </span>
             </div>
           </div>
         </div>
@@ -712,7 +1001,6 @@ export default function ProfilePage() {
               </div>
 
               <div className="profile-details-inner-box">
-                {/* Upload + Form */}
                 <div className="profile-upload-section">
                   <img
                     src="/default-profile.jpg"
@@ -974,7 +1262,6 @@ export default function ProfilePage() {
                     </div>
                   </div>
 
-                  {/* Region (left)  —  Postal Code (right) */}
                   <div className={`form-row double-row`}>
                     <div
                       className={`form-group ${
@@ -1025,9 +1312,22 @@ export default function ProfilePage() {
                     style={{ justifyContent: "flex-end" }}
                   >
                     <div className="form-button-wrapper">
-                      <button className="save-btn">Save</button>
+                      <button 
+                        className="save-btn" 
+                        onClick={handleSaveProfile}
+                        disabled={isSaving}
+                      >
+                        {isSaving ? "Saving..." : "SAVE"}
+                      </button>
                     </div>
                   </div>
+                  
+                  {/* Profile Error */}
+                  {profileError && (
+                    <div style={{ color: 'red', textAlign: 'center', marginTop: '10px' }}>
+                      {profileError}
+                    </div>
+                  )}
                 </form>
               </div>
             </>
@@ -1080,6 +1380,27 @@ export default function ProfilePage() {
                   />
                 </div>
 
+                {/* Loading State */}
+                {isLoadingOrders && (
+                  <div style={{ padding: "40px", textAlign: "center" }}>
+                    Loading orders...
+                  </div>
+                )}
+
+                {/* Error State */}
+                {ordersError && (
+                  <div style={{ padding: "20px", textAlign: "center", color: "red" }}>
+                    {ordersError}
+                  </div>
+                )}
+
+                {/* Empty State */}
+                {!isLoadingOrders && !ordersError && orders.length === 0 && (
+                  <div style={{ padding: "40px", textAlign: "center", color: "#666" }}>
+                    No orders found
+                  </div>
+                )}
+
                 <div className="orders-content">
                   <div className="order-card">
                     <div className="order-header">
@@ -1088,8 +1409,7 @@ export default function ProfilePage() {
                           type="button"
                           className="view-store-btn"
                           onClick={() => {
-                            // TODO: Replace with actual store navigation logic
-                            alert("Go to store!");
+                            alert("Go to store");
                           }}
                         >
                           <i className="fas fa-store"></i>
@@ -1100,12 +1420,14 @@ export default function ProfilePage() {
                       <div className="order-status-wrapper">
                         {activeOrdersTab === "To Ship" && (
                           <span className="order-status-msg left">
-                            📦 Seller is preparing your order...
+                            <i className="fas fa-box-open"></i> Seller is
+                            preparing your order...
                           </span>
                         )}
                         {activeOrdersTab === "To Receive" && (
                           <span className="order-status-msg left">
-                            🚚 Your order is on the way...
+                            <i className="fas fa-truck-fast"></i> You order is
+                            on the way...
                           </span>
                         )}
                         {activeOrdersTab === "Completed" && (
@@ -1206,19 +1528,19 @@ export default function ProfilePage() {
                           <button className="order-btn">Buy Again</button>
 
                           {!orderRatings["order-123"] &&
-                            confirmedOrders.has("order-123") && (
-                              <button
-                                className="order-btn primary"
-                                onClick={() =>
-                                  setOrderRatings((prev) => ({
-                                    ...prev,
-                                    ["order-123"]: 0,
-                                  }))
-                                }
-                              >
-                                Rate Order
-                              </button>
-                            )}
+                          confirmedOrders.has("order-123") ? (
+                            <button
+                              className="order-btn primary"
+                              onClick={() =>
+                                setOrderRatings((prev) => ({
+                                  ...prev,
+                                  ["order-123"]: 0,
+                                }))
+                              }
+                            >
+                              Rate Order
+                            </button>
+                          ) : null}
                         </>
                       )}
 
@@ -1301,23 +1623,29 @@ export default function ProfilePage() {
                 {activeStep === 0 && (
                   <div className="selling-step-content">
                     <div className="form-row">
-                      <label className="form-label">Shop Name</label>
+                      <label className="form-label">
+                        Shop Name <span style={{ color: "red" }}>*</span>
+                      </label>
                       <input
                         type="text"
                         className="form-input"
                         placeholder="Enter your Shop Name"
                         value={shopName}
                         onChange={(e) => setShopName(e.target.value)}
+                        required
                       />
                     </div>
 
                     <div className="form-row">
-                      <label className="form-label">Pickup Address</label>
+                      <label className="form-label">
+                        Pickup Address <span style={{ color: "red" }}>*</span>
+                      </label>
                       <div className="form-input-group">
                         <select
                           className="form-input"
                           value={pickupBarangay}
                           onChange={(e) => setPickupBarangay(e.target.value)}
+                          required
                         >
                           <option value="">Select Barangay</option>
                           <option value="Asinan">Asinan</option>
@@ -1344,19 +1672,61 @@ export default function ProfilePage() {
                           placeholder="Other Details"
                           value={pickupAddress}
                           onChange={(e) => setPickupAddress(e.target.value)}
+                          required
                         />
                       </div>
                     </div>
 
                     <div className="form-row">
-                      <label className="form-label">Email</label>
+                      <label className="form-label">
+                        Email <span style={{ color: "red" }}>*</span>
+                      </label>
                       <input
                         type="email"
                         className="form-input"
                         placeholder="Enter Shop Email"
                         value={shopEmail}
                         onChange={(e) => setShopEmail(e.target.value)}
+                        required
                       />
+                    </div>
+
+                    <div className="form-row">
+                      <label className="form-label">
+                        Phone <span style={{ color: "red" }}>*</span>
+                      </label>
+                      <input
+                        type="tel"
+                        className="form-input"
+                        placeholder="Enter Shop Phone"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        required
+                      />
+                    </div>
+
+                    <div className="form-row">
+                      <label className="form-label">
+                        Valid ID <span style={{ color: "red" }}>*</span>
+                      </label>
+                      <input
+                        type="file"
+                        accept="image/*,application/pdf"
+                        className="form-input"
+                        onChange={(e) =>
+                          setValidIdFile(e.target.files?.[0] || null)
+                        }
+                        required
+                      />
+                      <span
+                        style={{
+                          fontSize: "12px",
+                          color: "#888",
+                          marginLeft: "12px",
+                        }}
+                      >
+                        Upload a clear photo or scan of your valid ID.
+                      </span>
                     </div>
                   </div>
                 )}
@@ -1370,7 +1740,6 @@ export default function ProfilePage() {
                       gap: "28px",
                     }}
                   >
-                    {/* Upload Photo Section */}
                     <div
                       style={{
                         display: "flex",
@@ -1379,10 +1748,10 @@ export default function ProfilePage() {
                       }}
                     >
                       <div style={{ flex: "0 0 200px" }}>
+                        <span style={{ color: "red" }}>*</span>
                         <label className="form-label">Upload Photo</label>
                         <p style={{ fontSize: "14px", color: "#666" }}>
-                          Upload a photo of <strong>you</strong> or your{" "}
-                          <strong>artwork</strong>.
+                          Upload a photo of you or your artwork.
                         </p>
                       </div>
 
@@ -1483,6 +1852,7 @@ export default function ProfilePage() {
                       }}
                     >
                       <div style={{ flex: "0 0 200px" }}>
+                        <span style={{ color: "red" }}>*</span>
                         <label className="form-label">Artist Story</label>
                         <p style={{ fontSize: "14px", color: "#666" }}>
                           Share your journey, inspiration, and your craft
@@ -1575,6 +1945,24 @@ export default function ProfilePage() {
                         </p>
                       </div>
 
+                      {/* Add Phone here */}
+                      <div style={{ marginBottom: "10px" }}>
+                        <strong>Phone:</strong>
+                        <p style={{ margin: "4px 0 0 0", color: "#333" }}>
+                          {phone || "—"}
+                        </p>
+                      </div>
+
+                      <div style={{ marginBottom: "10px" }}>
+                        <strong>Valid ID:</strong>
+                        <p style={{ margin: "4px 0 0 0", color: "#333" }}>
+                          {validIdFile ? validIdFile.name : "—"}
+                        </p>
+                        <span style={{ fontSize: "12px", color: "#888" }}>
+                          (Must be a clear photo or scan)
+                        </span>
+                      </div>
+
                       <div>
                         <strong>Seller Story:</strong>
                         <p
@@ -1599,17 +1987,19 @@ export default function ProfilePage() {
                   }}
                 />
 
-                {/* Navigation Buttons + Save Validation + Modal */}
-
-                {/* Selling Buttons */}
                 <div className="selling-buttons" style={{ marginTop: "24px" }}>
                   <button
                     className="order-btn"
                     onClick={() => {
+                      if (!isShopInfoComplete) {
+                        setShowSaveError(true);
+                        return;
+                      }
                       setIsSaved(true);
                       setShowSaveError(false);
-                      setShowSaveModal(true); // show modal instead of alert
+                      setShowSaveModal(true);
                     }}
+                    disabled={!isShopInfoComplete}
                   >
                     Save
                   </button>
@@ -1625,10 +2015,9 @@ export default function ProfilePage() {
 
                       if (activeStep < 2) {
                         setActiveStep(activeStep + 1);
-                        setIsSaved(false); // reset for next step
-                        setShowProgressModal(true); // show modal when moving to next step
+                        setIsSaved(false);
                       } else {
-                        setShowSubmitModal(true); // final submit modal
+                        setShowSubmitModal(true);
                       }
                     }}
                   >
@@ -1646,20 +2035,18 @@ export default function ProfilePage() {
                   )}
                 </div>
 
-                {/* Error message if user tries Next without saving */}
                 {showSaveError && (
                   <p
                     style={{ color: "red", fontSize: "13px", marginTop: "8px" }}
                   >
-                    ⚠️ Please click “Save” first before proceeding.
+                    Please click “Save” first before proceeding.
                   </p>
                 )}
 
-                {/* Save Progress Modal */}
                 {showSaveModal && (
                   <div style={modalOverlayStyle}>
                     <div style={modalBoxStyle}>
-                      <h3 style={modalTitleStyle}>✅ Progress Saved</h3>
+                      <h3 style={modalTitleStyle}>Progress Saved</h3>
                       <p style={modalTextStyle}>
                         Your progress for this step has been successfully saved.
                       </p>
@@ -1673,11 +2060,10 @@ export default function ProfilePage() {
                   </div>
                 )}
 
-                {/* Step Progress Modal (for Next button) */}
                 {showProgressModal && (
                   <div style={modalOverlayStyle}>
                     <div style={modalBoxStyle}>
-                      <h3 style={modalTitleStyle}>✨ Step Completed</h3>
+                      <h3 style={modalTitleStyle}>Step Completed</h3>
                       <p style={modalTextStyle}>
                         You have successfully saved your details. Proceed to the
                         next step.
@@ -1692,26 +2078,86 @@ export default function ProfilePage() {
                   </div>
                 )}
 
-                {/* Final Submit Confirmation Modal */}
                 {showSubmitModal && (
-                  <div style={modalOverlayStyle}>
-                    <div style={modalBoxStyle}>
-                      <h3 style={modalTitleStyle}>🎉 Shop Submitted!</h3>
+                  <div
+                    style={modalOverlayStyle}
+                    onClick={(e) => {
+                      if (e.target === e.currentTarget) {
+                        setShowSubmitModal(false);
+                        setIsSeller(true);
+                        setActiveSection("myshop");
+                      }
+                    }}
+                  >
+                    <div style={{ ...modalBoxStyle, position: "relative" }}>
+                      <button
+                        aria-label="Close"
+                        onClick={() => {
+                          setShowSubmitModal(false);
+                          setIsSeller(true);
+                          setActiveSection("myshop");
+                        }}
+                        style={{
+                          position: "absolute",
+                          top: 12,
+                          right: 12,
+                          background: "transparent",
+                          border: "none",
+                          fontSize: 20,
+                          color: "#2e3f36",
+                          cursor: "pointer",
+                          padding: 6,
+                        }}
+                      >
+                        ×
+                      </button>
+
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "center",
+                          alignItems: "center",
+                          marginBottom: 16,
+                        }}
+                      >
+                        <span
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            background: "#28af53",
+                            borderRadius: "50%",
+                            width: 48,
+                            height: 48,
+                            color: "#fff",
+                            fontSize: "2rem",
+                          }}
+                        >
+                          ✓
+                        </span>
+                      </div>
+
+                      <h3 style={modalTitleStyle}>Shop Registered</h3>
                       <p style={modalTextStyle}>
-                        Your shop has been successfully submitted for review.
-                        You will receive an update once it’s approved.
+                        Your shop is registered. View it under My Shop in your
+                        profile.
                       </p>
+
                       <button
                         className="order-btn primary"
-                        onClick={() => setShowSubmitModal(false)}
+                        onClick={() => {
+                          setShowSubmitModal(false);
+                          setIsSeller(true);
+                          setActiveSection("myshop");
+                        }}
+                        style={{ marginBottom: 10 }}
                       >
-                        Done
+                        Proceed to My Shop
                       </button>
                     </div>
                   </div>
                 )}
 
-                {/* Success Modal */}
                 {showSuccessModal && (
                   <div className="modal-overlay">
                     <div className="modal-content">
@@ -1731,8 +2177,305 @@ export default function ProfilePage() {
               </div>
             </>
           )}
+
+          {/******** MY SHOP (visible after registering) ********/}
+
+          {isSeller && activeSection === "myshop" && (
+            <div
+              className="myshop-dashboard"
+              style={{ display: "flex", gap: "32px" }}
+            >
+              {/* Seller Profile Sidebar */}
+              <div
+                className="myshop-profile-sidebar"
+                style={{
+                  minWidth: 220,
+                  maxWidth: 260,
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  background: "#fff",
+                  borderRadius: 8,
+                  boxShadow: "0 2px 12px rgba(0,0,0,0.08)",
+                  padding: "32px 16px",
+                  height: "fit-content",
+                }}
+              >
+                <img
+                  src="/default-profile.jpg"
+                  alt="Seller profile"
+                  style={{
+                    width: 100,
+                    height: 100,
+                    borderRadius: "50%",
+                    objectFit: "cover",
+                    marginBottom: 16,
+                  }}
+                />
+                <div
+                  style={{
+                    fontWeight: 600,
+                    fontSize: 18,
+                    color: "#2e3f36",
+                    marginBottom: 4,
+                  }}
+                >
+                  {fullName}
+                </div>
+                <div style={{ fontSize: 14, color: "#888", marginBottom: 8 }}>
+                  {shopEmail}
+                </div>
+                <div style={{ fontSize: 14, color: "#888" }}>{phone}</div>
+              </div>
+
+              {/* Main Shop Content */}
+              <div
+                style={{
+                  flex: 1,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "24px",
+                }}
+              >
+                {/* Shop Name */}
+                <div
+                  style={{
+                    background: "#fff",
+                    borderRadius: 8,
+                    boxShadow: "0 2px 12px rgba(0,0,0,0.08)",
+                    padding: "24px 32px",
+                    fontSize: "2rem",
+                    fontWeight: 700,
+                    color: "#af7928",
+                    marginBottom: 0,
+                  }}
+                >
+                  {shopName || "My Shop"}
+                </div>
+
+                {/* Order Status Card */}
+                <div
+                  style={{
+                    background: "#fff",
+                    borderRadius: 8,
+                    boxShadow: "0 2px 12px rgba(0,0,0,0.08)",
+                    padding: "24px 32px",
+                  }}
+                >
+                  <div
+                    style={{
+                      fontWeight: 600,
+                      fontSize: 18,
+                      color: "#2e3f36",
+                      marginBottom: 18,
+                    }}
+                  >
+                    Order Status
+                  </div>
+                  <div style={{ display: "flex", gap: "32px" }}>
+                    {[
+                      { label: "To Ship", value: 2, color: "#af7928" },
+                      { label: "Cancelled", value: 0, color: "#e74c3c" },
+                      { label: "Return", value: 0, color: "#888" },
+                      { label: "Review", value: 1, color: "#45956a" },
+                    ].map((stat) => (
+                      <div
+                        key={stat.label}
+                        style={{
+                          flex: 1,
+                          background: "#faf8f5",
+                          borderRadius: 8,
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          padding: "18px 0",
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: 32,
+                            fontWeight: 700,
+                            color: stat.color,
+                            marginBottom: 4,
+                          }}
+                        >
+                          {stat.value}
+                        </span>
+                        <span
+                          style={{
+                            fontSize: 15,
+                            color: "#2e3f36",
+                            fontWeight: 500,
+                          }}
+                        >
+                          {stat.label}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Quick Links Card */}
+                <div>
+                  <div style={{ display: "flex", gap: "24px" }}>
+                    {/* My Products */}
+                    <div
+                      style={{
+                        flex: 1,
+                        background: "#fff",
+                        borderRadius: 8,
+                        boxShadow: "0 2px 12px rgba(0,0,0,0.08)",
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        padding: "24px 0",
+                        cursor: "pointer",
+                        transition: "box-shadow 0.2s",
+                      }}
+                    >
+                      <FaBoxOpen
+                        style={{
+                          fontSize: 36,
+                          color: "#af7928",
+                          marginBottom: 8,
+                        }}
+                      />
+                      <span
+                        style={{
+                          fontWeight: 600,
+                          fontSize: 16,
+                          color: "#2e3f36",
+                        }}
+                      >
+                        My Products
+                      </span>
+                    </div>
+                    {/* Shop Performance */}
+                    <div
+                      style={{
+                        flex: 1,
+                        background: "#fff",
+                        borderRadius: 8,
+                        boxShadow: "0 2px 12px rgba(0,0,0,0.08)",
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        padding: "24px 0",
+                        cursor: "pointer",
+                        transition: "box-shadow 0.2s",
+                      }}
+                    >
+                      <FaStore
+                        style={{
+                          fontSize: 32,
+                          color: "#af7928",
+                          marginBottom: 8,
+                        }}
+                      />
+                      <span
+                        style={{
+                          fontWeight: 600,
+                          fontSize: 16,
+                          color: "#2e3f36",
+                        }}
+                      >
+                        Shop Performance
+                      </span>
+                    </div>
+                    {/* FAQ */}
+                    <div
+                      style={{
+                        flex: 1,
+                        background: "#fff",
+                        borderRadius: 8,
+                        boxShadow: "0 2px 12px rgba(0,0,0,0.08)",
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        padding: "24px 0",
+                        cursor: "pointer",
+                        transition: "box-shadow 0.2s",
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: 32,
+                          color: "#af7928",
+                          marginBottom: 8,
+                        }}
+                      >
+                        ?
+                      </span>
+                      <span
+                        style={{
+                          fontWeight: 600,
+                          fontSize: 16,
+                          color: "#2e3f36",
+                        }}
+                      >
+                        FAQ
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Artist Story Card */}
+                <div
+                  style={{
+                    background: "#fff",
+                    borderRadius: 8,
+                    boxShadow: "0 2px 12px rgba(0,0,0,0.08)",
+                    padding: "32px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "32px",
+                  }}
+                >
+                  <img
+                    src={
+                      document
+                        .getElementById("sellerPhotoPreview")
+                        ?.getAttribute("src") || "/default-profile.jpg"
+                    }
+                    alt="Artist"
+                    style={{
+                      width: 120,
+                      height: 120,
+                      borderRadius: "50%",
+                      objectFit: "cover",
+                      background: "#faf8f5",
+                    }}
+                  />
+                  <div>
+                    <div
+                      style={{
+                        fontWeight: 600,
+                        fontSize: 18,
+                        color: "#af7928",
+                        marginBottom: 8,
+                      }}
+                    >
+                      Artist Story
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 15,
+                        color: "#2e3f36",
+                        whiteSpace: "pre-line",
+                      }}
+                    >
+                      {sellerStory || "No story provided yet."}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
+      <Footer />
     </>
   );
 }
+
+

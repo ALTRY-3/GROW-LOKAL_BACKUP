@@ -1,12 +1,22 @@
 "use client";
 
 import { useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { loadRecaptchaScript } from '@/lib/recaptcha';
 
 export default function RecaptchaProvider({ children }: { children: React.ReactNode }) {
   const [isLoaded, setIsLoaded] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
+    // Only load reCAPTCHA on login and signup pages
+    const shouldLoadRecaptcha = pathname === '/login' || pathname === '/signup';
+    
+    if (!shouldLoadRecaptcha) {
+      setIsLoaded(true);
+      return;
+    }
+
     const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
     
     if (!siteKey) {
@@ -26,7 +36,7 @@ export default function RecaptchaProvider({ children }: { children: React.ReactN
         console.error('Failed to load reCAPTCHA:', error);
         setIsLoaded(true); // Continue anyway in case of error
       });
-  }, []);
+  }, [pathname]);
 
   return <>{children}</>;
 }
