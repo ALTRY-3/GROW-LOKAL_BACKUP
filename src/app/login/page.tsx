@@ -19,16 +19,18 @@ export default function LoginPage() {
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    const reset = searchParams?.get('reset');
-    const verified = searchParams?.get('verified');
-    
-    if (reset === 'true') {
-      setSuccessMessage('Password reset successful! You can now log in with your new password.');
+    const reset = searchParams?.get("reset");
+    const verified = searchParams?.get("verified");
+
+    if (reset === "true") {
+      setSuccessMessage(
+        "Password reset successful! You can now log in with your new password."
+      );
       // Clear the message after 5 seconds
-      setTimeout(() => setSuccessMessage(''), 5000);
-    } else if (verified === 'true') {
-      setSuccessMessage('Email verified successfully! You can now log in.');
-      setTimeout(() => setSuccessMessage(''), 5000);
+      setTimeout(() => setSuccessMessage(""), 5000);
+    } else if (verified === "true") {
+      setSuccessMessage("Email verified successfully! You can now log in.");
+      setTimeout(() => setSuccessMessage(""), 5000);
     }
   }, [searchParams]);
 
@@ -48,35 +50,35 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      const result = await signIn('credentials', {
+      const result = await signIn("credentials", {
         email: formData.email,
         password: formData.password,
         redirect: false,
       });
 
       if (result?.error) {
-        setError('Invalid email or password');
+        setError("Invalid email or password");
       } else {
         // Redirect to marketplace on success
-        window.location.href = '/marketplace';
+        window.location.href = "/marketplace";
       }
     } catch (error: any) {
-      setError('Failed to login');
+      setError("Failed to login");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleSocialLogin = async (provider: 'google' | 'facebook') => {
+  const handleSocialLogin = async (provider: "google" | "facebook") => {
     try {
-      const result = await signIn(provider, { 
-        callbackUrl: '/marketplace',
-        redirect: true 
+      const result = await signIn(provider, {
+        callbackUrl: "/marketplace",
+        redirect: true,
       });
-      
+
       // If redirect doesn't happen automatically, force it
       if (result?.ok) {
-        window.location.href = '/marketplace';
+        window.location.href = "/marketplace";
       }
     } catch (error) {
       setError(`Failed to login with ${provider}`);
@@ -144,7 +146,7 @@ export default function LoginPage() {
                 {successMessage}
               </div>
             )}
-            
+
             {error && (
               <div className="error-message">
                 <i className="fas fa-exclamation-triangle"></i>
@@ -215,9 +217,9 @@ export default function LoginPage() {
           </div>
 
           <div className="social-login">
-            <button 
+            <button
               className="social-button facebook"
-              onClick={() => handleSocialLogin('facebook')}
+              onClick={() => handleSocialLogin("facebook")}
               type="button"
             >
               <Image
@@ -228,9 +230,9 @@ export default function LoginPage() {
                 height={20}
               />
             </button>
-            <button 
+            <button
               className="social-button google"
-              onClick={() => handleSocialLogin('google')}
+              onClick={() => handleSocialLogin("google")}
               type="button"
             >
               <Image
