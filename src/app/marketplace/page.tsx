@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { FaShoppingCart, FaCheck, FaTimes, FaSpinner } from "react-icons/fa";
 import ImageCarousel from "@/components/ImageCarousel1";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ProductModal from "@/components/ProductModal";
+import { useCartStore } from "@/store/cartStore";
 import "./marketplace.css";
 
 // API Product interface
@@ -136,36 +138,7 @@ export default function Marketplace() {
     setSelectedProduct(convertToLegacyProduct(product));
   };
 
-  // Loading skeleton
-  if (loading && handicrafts.length === 0) {
-    return (
-      <div className="marketplace-page">
-        <Navbar />
-        <div className="search-bar-container">
-          <div className="search-bar">
-            <i className="fas fa-search search-icon"></i>
-            <input
-              className="search-input"
-              type="text"
-              placeholder="Search for a product or artist"
-              disabled
-            />
-          </div>
-        </div>
-        <div className="carousel-section">
-          <ImageCarousel autoSlide={true} slideInterval={3000} />
-          <div className="carousel-text">Discover local treasures.</div>
-        </div>
-        <div style={{ textAlign: 'center', padding: '4rem 0' }}>
-          <div className="loading-spinner">
-            <i className="fas fa-spinner fa-spin" style={{ fontSize: '3rem', color: '#AF7928' }}></i>
-            <p style={{ marginTop: '1rem', fontSize: '1.2rem' }}>Loading products...</p>
-          </div>
-        </div>
-        <Footer />
-      </div>
-    );
-  }
+  // Loading skeleton - removed, now using inline skeleton cards in sections
 
   // Error state
   if (error) {
@@ -250,7 +223,7 @@ export default function Marketplace() {
         <div className="carousel-text">Discover local treasures.</div>
       </div>
 
-      {handicrafts.length > 0 && (
+      {(loading || handicrafts.length > 0) && (
         <Section
           title="HANDICRAFTS"
           products={handicrafts}
@@ -259,7 +232,7 @@ export default function Marketplace() {
         />
       )}
       
-      {fashion.length > 0 && (
+      {(loading || fashion.length > 0) && (
         <Section
           title="FASHION"
           products={fashion}
@@ -268,7 +241,7 @@ export default function Marketplace() {
         />
       )}
       
-      {home.length > 0 && (
+      {(loading || home.length > 0) && (
         <Section
           title="HOME"
           products={home}
@@ -277,7 +250,7 @@ export default function Marketplace() {
         />
       )}
       
-      {food.length > 0 && (
+      {(loading || food.length > 0) && (
         <Section
           title="FOOD"
           products={food}
@@ -286,7 +259,7 @@ export default function Marketplace() {
         />
       )}
       
-      {beauty.length > 0 && (
+      {(loading || beauty.length > 0) && (
         <Section
           title="BEAUTY & WELLNESS"
           products={beauty}
@@ -349,13 +322,58 @@ function Section({
   onProductClick: (product: Product) => void;
   loading?: boolean;
 }) {
+  const { addItem } = useCartStore();
+  const [addingProduct, setAddingProduct] = useState<string | null>(null);
+  const [successProduct, setSuccessProduct] = useState<string | null>(null);
+  const [errorProduct, setErrorProduct] = useState<string | null>(null);
+
+  const handleAddToCart = async (product: Product, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent card click
+    
+    if (!product.isAvailable || product.stock === 0) return;
+    if (addingProduct === product._id) return; // Prevent double-click
+    
+    try {
+      setAddingProduct(product._id);
+      
+      await addItem(product._id, 1);
+      
+      setAddingProduct(null);
+      setSuccessProduct(product._id);
+      
+      setTimeout(() => {
+        setSuccessProduct(null);
+      }, 1000);
+    } catch (error) {
+      console.error('Failed to add to cart:', error);
+      setAddingProduct(null);
+      setErrorProduct(product._id);
+      
+      setTimeout(() => {
+        setErrorProduct(null);
+      }, 2000);
+    }
+  };
+
   return (
     <>
       <div className="section-title">{title}</div>
       <div className="product-grid">
-        {products.map((product) => (
-          <div className="product-card" key={product._id}>
-            <div className="image-container">
+        {loading ? (
+          // Show skeleton loading cards
+          Array.from({ length: 4 }).map((_, index) => (
+            <div className="product-card skeleton" key={`skeleton-${index}`}>
+              <div className="image-container skeleton-image"></div>
+              <div className="product-info">
+                <div className="skeleton-text"></div>
+                <div className="skeleton-text short"></div>
+              </div>
+            </div>
+          ))
+        ) : (
+          products.map((product) => (
+            <div className="product-card" key={product._id}>
+              <div className="image-container">
               <img
                 src={product.images[0] || product.thumbnailUrl}
                 alt={product.name}
@@ -366,6 +384,28 @@ function Section({
                 alt={product.name}
                 className="product-image hover"
               />
+              
+              {/* Add to cart icon */}
+              <button
+                className={`add-to-cart-icon ${
+                  addingProduct === product._id ? 'loading' : ''
+                } ${successProduct === product._id ? 'success' : ''} ${
+                  errorProduct === product._id ? 'error' : ''
+                }`}
+                onClick={(e) => handleAddToCart(product, e)}
+                disabled={!product.isAvailable || product.stock === 0 || addingProduct === product._id}
+                aria-label="Add to cart"
+              >
+                {addingProduct === product._id ? (
+                  <FaSpinner className="loading-spinner" />
+                ) : successProduct === product._id ? (
+                  <FaCheck />
+                ) : errorProduct === product._id ? (
+                  <FaTimes />
+                ) : (
+                  <FaShoppingCart />
+                )}
+              </button>
               
               {/* Out of stock overlay */}
               {!product.isAvailable || product.stock === 0 ? (
@@ -427,7 +467,8 @@ function Section({
               </div>
             </div>
           </div>
-        ))}
+        ))
+        )}
       </div>
     </>
   );

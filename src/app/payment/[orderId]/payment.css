@@ -27,11 +27,27 @@
 }
 
 .loading-spinner i {
-  color: #007bff;
+  color: #AF7928;
+  animation: spin 1s linear infinite;
+}
+
+.loading-spinner p {
+  font-size: 18px;
+  margin: 0;
+  color: #666;
 }
 
 .error-state i {
   color: #dc3545;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .error-state button {
@@ -202,6 +218,16 @@
   opacity: 0.6;
   cursor: not-allowed;
   transform: none;
+}
+
+.pay-button i.fa-spinner {
+  animation: spin 1s linear infinite;
+}
+
+.loading-payment-intent i.fa-spinner {
+  animation: spin 1s linear infinite;
+  color: #AF7928;
+  font-size: 20px;
 }
 
 .cancel-link {

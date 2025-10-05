@@ -399,7 +399,7 @@ export default function PaymentPage() {
         <main className="payment-page">
           <div className="payment-container">
             <div className="loading-spinner">
-              <i className="fas fa-spinner fa-spin"></i>
+              <i className="fas fa-spinner"></i>
               <p>Loading payment...</p>
             </div>
           </div>
@@ -553,7 +553,7 @@ export default function PaymentPage() {
 
                 {!paymentIntentId && !error && (
                   <div className="loading-payment-intent" style={{ padding: '15px', background: '#fff3cd', borderRadius: '8px', marginBottom: '15px', textAlign: 'center' }}>
-                    <i className="fas fa-spinner fa-spin"></i>
+                    <i className="fas fa-spinner"></i>
                     <p style={{ margin: '10px 0 0 0' }}>Initializing payment...</p>
                   </div>
                 )}
@@ -566,12 +566,12 @@ export default function PaymentPage() {
                 >
                   {processing ? (
                     <>
-                      <i className="fas fa-spinner fa-spin"></i>
+                      <i className="fas fa-spinner"></i>
                       Processing...
                     </>
                   ) : !paymentIntentId ? (
                     <>
-                      <i className="fas fa-spinner fa-spin"></i>
+                      <i className="fas fa-spinner"></i>
                       Initializing...
                     </>
                   ) : (

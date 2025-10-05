@@ -1,66 +1,239 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useCartStore } from "@/store/cartStore";
+import React, { useState, useEffect, useRef } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { FaShoppingCart, FaTrash } from "react-icons/fa";
+import { useRouter } from "next/navigation";
+import { useCartStore } from "@/store/cartStore";
 import "./cart.css";
 
+interface CartItemWithSelection {
+  productId: string;
+  name: string;
+  price: number;
+  quantity: number;
+  image: string;
+  artistName: string;
+  maxStock: number;
+  selected: boolean;
+}
+
 export default function CartPage() {
-  const router = useRouter();
+  // Zustand store
   const { 
     items, 
-    subtotal, 
-    itemCount, 
     isLoading, 
     error, 
     fetchCart, 
     updateQuantity, 
-    removeItem, 
-    clearCart 
+    removeItem 
   } = useCartStore();
 
+  // Local UI state for item selection
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+  const [operationLoading, setOperationLoading] = useState<string | null>(null);
+  
+  const footerRef = useRef<HTMLDivElement>(null);
+  const [hideCartFooter, setHideCartFooter] = useState(false);
+  const router = useRouter();
+
+  // Load cart on component mount
   useEffect(() => {
     fetchCart();
   }, [fetchCart]);
 
-  const handleQuantityChange = async (productId: string, newQuantity: number) => {
-    if (newQuantity < 1) return;
-    await updateQuantity(productId, newQuantity);
-  };
+  // Map API items to UI format with selection state
+  const cartItemsWithSelection: CartItemWithSelection[] = items.map(item => ({
+    ...item,
+    selected: selectedItems.has(item.productId)
+  }));
 
-  const handleRemoveItem = async (productId: string) => {
-    if (confirm('Remove this item from cart?')) {
-      await removeItem(productId);
+  // Computed values based on selection
+  const selectedCartItems = cartItemsWithSelection.filter(item => item.selected);
+  const totalPrice = selectedCartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const selectedCount = selectedCartItems.length;
+
+  const incrementQty = async (productId: string, currentQuantity: number) => {
+    if (operationLoading === productId) return;
+    
+    setOperationLoading(productId);
+    try {
+      await updateQuantity(productId, currentQuantity + 1);
+    } catch (error) {
+      console.error('Failed to update quantity:', error);
+    } finally {
+      setOperationLoading(null);
     }
   };
 
-  const handleClearCart = async () => {
-    if (confirm('Clear entire cart?')) {
-      await clearCart();
+  const decrementQty = async (productId: string, currentQuantity: number) => {
+    if (operationLoading === productId || currentQuantity <= 1) return;
+    
+    setOperationLoading(productId);
+    try {
+      await updateQuantity(productId, currentQuantity - 1);
+    } catch (error) {
+      console.error('Failed to update quantity:', error);
+    } finally {
+      setOperationLoading(null);
+    }
+  };
+
+  const toggleSelectItem = (productId: string) => {
+    setSelectedItems(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(productId)) {
+        newSet.delete(productId);
+      } else {
+        newSet.add(productId);
+      }
+      return newSet;
+    });
+  };
+
+  const selectAllItems = (checked: boolean) => {
+    if (checked) {
+      setSelectedItems(new Set(cartItemsWithSelection.map(item => item.productId)));
+    } else {
+      setSelectedItems(new Set());
+    }
+  };
+
+  const deleteSelected = async () => {
+    if (selectedItems.size === 0) return;
+    
+    const itemsToDelete = Array.from(selectedItems);
+    setOperationLoading('bulk-delete');
+    
+    try {
+      // Delete selected items one by one
+      await Promise.all(itemsToDelete.map(productId => removeItem(productId)));
+      setSelectedItems(new Set()); // Clear selection after successful deletion
+    } catch (error) {
+      console.error('Failed to delete selected items:', error);
+    } finally {
+      setOperationLoading(null);
+    }
+  };
+
+  const handleDeleteSingle = async (productId: string) => {
+    if (operationLoading === productId) return;
+    
+    setOperationLoading(productId);
+    try {
+      await removeItem(productId);
+      // Remove from selection if it was selected
+      setSelectedItems(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(productId);
+        return newSet;
+      });
+    } catch (error) {
+      console.error('Failed to delete item:', error);
+    } finally {
+      setOperationLoading(null);
     }
   };
 
   const handleCheckout = () => {
-    if (items.length > 0) {
-      router.push('/checkout');
-    }
+    if (selectedCount === 0) return;
+    
+    // Pass selected items to checkout page
+    const selectedItemsData = selectedCartItems.map(item => ({
+      productId: item.productId,
+      quantity: item.quantity,
+      price: item.price
+    }));
+    
+    // Store in sessionStorage for checkout page
+    sessionStorage.setItem('checkoutItems', JSON.stringify(selectedItemsData));
+    router.push('/checkout');
   };
 
-  if (isLoading && items.length === 0) {
+  // IntersectionObserver for sticky footer
+  useEffect(() => {
+    if (!footerRef.current) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        // Hide cart footer when website footer is visible (intersecting)
+        // Show cart footer when website footer is not visible (not intersecting)
+        setHideCartFooter(entry.isIntersecting);
+      },
+      { 
+        root: null, 
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px' // Trigger slightly before footer is fully visible
+      }
+    );
+
+    observer.observe(footerRef.current);
+
+    return () => observer.disconnect();
+  }, []);
+
+  // Loading state
+  if (isLoading && cartItemsWithSelection.length === 0) {
     return (
       <>
         <Navbar />
-        <main className="cart-page">
-          <div className="cart-container">
-            <div className="loading-spinner">
-              <i className="fas fa-spinner fa-spin"></i>
-              <p>Loading cart...</p>
-            </div>
+        <div className="cart-page-wrapper">
+          <div className="cart-title-bar">
+            <FaShoppingCart className="cart-title-icon" />
+            <span className="cart-title-text">Shopping Cart</span>
           </div>
-        </main>
-        <Footer />
+          <div className="cart-loading">Loading your cart...</div>
+        </div>
+        <div ref={footerRef}>
+          <Footer />
+        </div>
+      </>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <>
+        <Navbar />
+        <div className="cart-page-wrapper">
+          <div className="cart-title-bar">
+            <FaShoppingCart className="cart-title-icon" />
+            <span className="cart-title-text">Shopping Cart</span>
+          </div>
+          <div className="cart-error">
+            <p>Failed to load cart: {error}</p>
+            <button onClick={() => fetchCart()}>Try Again</button>
+          </div>
+        </div>
+        <div ref={footerRef}>
+          <Footer />
+        </div>
+      </>
+    );
+  }
+
+  // Empty cart state
+  if (cartItemsWithSelection.length === 0) {
+    return (
+      <>
+        <Navbar />
+        <div className="cart-page-wrapper">
+          <div className="cart-title-bar">
+            <FaShoppingCart className="cart-title-icon" />
+            <span className="cart-title-text">Shopping Cart</span>
+          </div>
+          <div className="cart-empty">
+            <FaShoppingCart className="empty-cart-icon" />
+            <h3>Your cart is empty</h3>
+            <p>Add some products to get started!</p>
+            <button onClick={() => router.push('/products')}>Shop Now</button>
+          </div>
+        </div>
+        <div ref={footerRef}>
+          <Footer />
+        </div>
       </>
     );
   }
@@ -68,133 +241,101 @@ export default function CartPage() {
   return (
     <>
       <Navbar />
-      <main className="cart-page">
-        <div className="cart-container">
-          <div className="cart-header">
-            <h1>Shopping Cart</h1>
-            {items.length > 0 && (
-              <button 
-                className="clear-cart-btn" 
-                onClick={handleClearCart}
-                disabled={isLoading}
-              >
-                Clear Cart
-              </button>
-            )}
-          </div>
-
-          {error && (
-            <div className="error-message">
-              <i className="fas fa-exclamation-circle"></i>
-              {error}
-            </div>
-          )}
-
-          {items.length === 0 ? (
-            <div className="empty-cart">
-              <i className="fas fa-shopping-cart"></i>
-              <h2>Your cart is empty</h2>
-              <p>Add some products to get started!</p>
-              <button 
-                className="continue-shopping-btn"
-                onClick={() => router.push('/marketplace')}
-              >
-                Continue Shopping
-              </button>
-            </div>
-          ) : (
-            <div className="cart-content">
-              <div className="cart-items">
-                {items.map((item) => (
-                  <div key={item.productId} className="cart-item-card">
-                    <img 
-                      src={item.image} 
-                      alt={item.name}
-                      className="cart-item-image"
-                    />
-                    
-                    <div className="cart-item-details">
-                      <h3>{item.name}</h3>
-                      <p className="cart-item-artist">by {item.artistName}</p>
-                      <p className="cart-item-price">₱{item.price.toFixed(2)}</p>
-                    </div>
-
-                    <div className="cart-item-actions">
-                      <div className="quantity-controls">
-                        <button
-                          onClick={() => handleQuantityChange(item.productId, item.quantity - 1)}
-                          disabled={isLoading || item.quantity <= 1}
-                          className="qty-btn"
-                        >
-                          -
-                        </button>
-                        <span className="qty-display">{item.quantity}</span>
-                        <button
-                          onClick={() => handleQuantityChange(item.productId, item.quantity + 1)}
-                          disabled={isLoading || item.quantity >= item.maxStock}
-                          className="qty-btn"
-                          title={item.quantity >= item.maxStock ? 'Max stock reached' : ''}
-                        >
-                          +
-                        </button>
-                      </div>
-                      
-                      <p className="item-total">
-                        Total: ₱{(item.price * item.quantity).toFixed(2)}
-                      </p>
-
-                      <button
-                        onClick={() => handleRemoveItem(item.productId)}
-                        disabled={isLoading}
-                        className="remove-btn"
-                      >
-                        <i className="fas fa-trash"></i> Remove
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="cart-summary">
-                <h2>Order Summary</h2>
-                
-                <div className="summary-row">
-                  <span>Items ({itemCount})</span>
-                  <span>₱{subtotal.toFixed(2)}</span>
-                </div>
-
-                <div className="summary-row">
-                  <span>Shipping</span>
-                  <span>Calculated at checkout</span>
-                </div>
-
-                <div className="summary-divider"></div>
-
-                <div className="summary-row total">
-                  <span>Subtotal</span>
-                  <span>₱{subtotal.toFixed(2)}</span>
-                </div>
-
-                <button 
-                  className="checkout-btn"
-                  onClick={handleCheckout}
-                  disabled={isLoading}
-                >
-                  Proceed to Checkout
-                </button>
-
-                <button 
-                  className="continue-shopping-btn"
-                  onClick={() => router.push('/marketplace')}
-                >
-                  Continue Shopping
-                </button>
-              </div>
-            </div>
-          )}
+      <div className="cart-page-wrapper">
+        <div className="cart-title-bar">
+          <FaShoppingCart className="cart-title-icon" />
+          <span className="cart-title-text">Shopping Cart</span>
         </div>
-      </main>
-      <Footer />
+
+        <div className="cart-items-container">
+          {cartItemsWithSelection.map((item) => (
+            <div key={item.productId} className="cart-item-card">
+              <input
+                type="checkbox"
+                className="cart-item-checkbox"
+                checked={item.selected}
+                onChange={() => toggleSelectItem(item.productId)}
+              />
+              <img
+                src={item.image}
+                alt={item.name}
+                className="cart-item-image"
+              />
+              <div className="cart-item-divider" />
+              <div className="cart-item-info">
+                <span className="cart-item-artist">{item.artistName}</span>
+                <span className="cart-item-product">{item.name}</span>
+                <span className="cart-item-price">₱{item.price.toLocaleString()}</span>
+                <div className="cart-item-quantity">
+                  <button 
+                    onClick={() => decrementQty(item.productId, item.quantity)}
+                    disabled={item.quantity <= 1 || operationLoading === item.productId}
+                  >
+                    -
+                  </button>
+                  <span>{item.quantity}</span>
+                  <button 
+                    onClick={() => incrementQty(item.productId, item.quantity)}
+                    disabled={item.quantity >= item.maxStock || operationLoading === item.productId}
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+              <button
+                className="cart-item-trash"
+                onClick={() => handleDeleteSingle(item.productId)}
+                disabled={operationLoading === item.productId}
+              >
+                <FaTrash />
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className={`cart-page-footer ${hideCartFooter ? "hide" : ""}`}>
+        <div className="footer-left">
+          <input
+            type="checkbox"
+            className="footer-checkbox"
+            checked={selectedCount === cartItemsWithSelection.length && cartItemsWithSelection.length > 0}
+            onChange={(e) => selectAllItems(e.target.checked)}
+          />
+          <span className="footer-select-text">
+            Select All ({selectedCount})
+          </span>
+          <div className="footer-divider" />
+          <button 
+            className="footer-delete-btn" 
+            onClick={deleteSelected}
+            disabled={selectedCount === 0 || operationLoading === 'bulk-delete'}
+          >
+            {operationLoading === 'bulk-delete' ? 'Deleting...' : 'Delete'}
+          </button>
+        </div>
+
+        <div className="footer-right">
+          <span className="footer-total-label">
+            Total ({selectedCount} items):
+          </span>
+          <span className="footer-total-price">
+            ₱{totalPrice.toLocaleString()}
+          </span>
+          <button
+            className="footer-checkout-btn"
+            onClick={handleCheckout}
+            disabled={selectedCount === 0}
+          >
+            Check Out
+          </button>
+        </div>
+      </div>
+
+      <div ref={footerRef}>
+        <Footer />
+      </div>
     </>
   );
 }
+

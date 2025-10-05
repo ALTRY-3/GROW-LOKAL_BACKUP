@@ -1,187 +1,251 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React from "react";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
+import { FaShoppingCart, FaMapMarkerAlt } from "react-icons/fa";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useCartStore } from "@/store/cartStore";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import "./checkout.css";
 
-interface ShippingAddress {
-  fullName: string;
-  email: string;
-  phone: string;
-  address: string;
+interface CheckoutItem {
+  productId: string;
+  name: string;
+  price: number;
+  quantity: number;
+  image: string;
+  artistName: string;
+}
+
+interface UserAddress {
+  street: string;
+  barangay: string;
   city: string;
   province: string;
   postalCode: string;
-  country: string;
+  phone: string;
 }
+
+interface ShippingOption {
+  id: string;
+  name: string;
+  price: number;
+  estimatedDays: string;
+}
+
+const shippingOptions: ShippingOption[] = [
+  { id: "standard", name: "Standard Shipping", price: 58, estimatedDays: "3-5 business days" },
+  { id: "express", name: "Express Shipping", price: 75, estimatedDays: "2-3 business days" },
+  { id: "priority", name: "Priority Shipping", price: 120, estimatedDays: "1-2 business days" },
+];
 
 export default function CheckoutPage() {
   const router = useRouter();
   const { data: session } = useSession();
-  const { items, subtotal, itemCount, fetchCart } = useCartStore();
+  const { clearCart } = useCartStore();
+
+  const [checkoutItems, setCheckoutItems] = React.useState<CheckoutItem[]>([]);
+  const [userAddress, setUserAddress] = React.useState<UserAddress | null>(null);
+  const [savedAddresses, setSavedAddresses] = React.useState<UserAddress[]>([]);
+  const [showAddressModal, setShowAddressModal] = React.useState(false);
   
-  const [shippingAddress, setShippingAddress] = useState<ShippingAddress>({
-    fullName: "",
-    email: session?.user?.email || "",
-    phone: "",
-    address: "",
-    city: "",
-    province: "",
-    postalCode: "",
-    country: "Philippines",
-  });
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [isProcessing, setIsProcessing] = React.useState(false);
+  const [error, setError] = React.useState("");
+  
+  const [selectedPayment, setSelectedPayment] = React.useState("");
+  const [selectedShipping, setSelectedShipping] = React.useState(shippingOptions[0]);
+  const [showShippingOptions, setShowShippingOptions] = React.useState(false);
+  
+  const [voucherCode, setVoucherCode] = React.useState("");
+  const [appliedVoucher, setAppliedVoucher] = React.useState<{ code: string; discount: number } | null>(null);
+  const [messageToSeller, setMessageToSeller] = React.useState("");
+  
+  const [showSuccessModal, setShowSuccessModal] = React.useState(false);
 
-  const [paymentMethod, setPaymentMethod] = useState<"card" | "cod" | "gcash">("card");
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [errors, setErrors] = useState<Partial<ShippingAddress>>({});
-  const [orderPlaced, setOrderPlaced] = useState(false); // Track if order was placed
+  // Load checkout data on mount
+  React.useEffect(() => {
+    loadCheckoutData();
+  }, []);
 
-  // Shipping fee calculation (simple example)
-  const shippingFee = subtotal > 1000 ? 0 : 100;
-  const total = subtotal + shippingFee;
+  const loadCheckoutData = async () => {
+    try {
+      setIsLoading(true);
+      setError("");
 
-  useEffect(() => {
-    fetchCart();
-    
-    // Redirect if cart is empty (but not if we just placed an order)
-    if (!orderPlaced && (!items || items.length === 0)) {
-      router.push("/cart");
-    }
+      // Load cart items from sessionStorage
+      const storedCart = sessionStorage.getItem("checkoutCart");
+      if (storedCart) {
+        const parsedCart = JSON.parse(storedCart);
+        setCheckoutItems(parsedCart);
+      }
 
-    // Pre-fill email if logged in
-    if (session?.user?.email) {
-      setShippingAddress(prev => ({
-        ...prev,
-        email: session.user.email || "",
-        fullName: session.user.name || "",
-      }));
-    }
-  }, [fetchCart, items, router, session]);
+      // Load user address - use test address for now
+      const testAddress: UserAddress = {
+        street: "123 Test Street",
+        barangay: "Barangay Sample",
+        city: "Manila",
+        province: "Metro Manila",
+        postalCode: "1000",
+        phone: "+63 912 345 6789",
+      };
+      
+      setUserAddress(testAddress);
+      setSavedAddresses([testAddress]);
 
-  const handleInputChange = (field: keyof ShippingAddress, value: string) => {
-    setShippingAddress(prev => ({ ...prev, [field]: value }));
-    // Clear error for this field when user starts typing
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: undefined }));
+      // Try to fetch real data if session exists
+      if (session?.user) {
+        try {
+          const response = await fetch("/api/user/profile");
+          const contentType = response.headers.get("content-type");
+          
+          if (response.ok && contentType?.includes("application/json")) {
+            const data = await response.json();
+            if (data.address) {
+              setUserAddress(data.address);
+              setSavedAddresses([data.address]);
+            }
+          }
+        } catch (err) {
+          console.log("Using test address");
+        }
+      }
+    } catch (err) {
+      console.error("Error loading checkout data:", err);
+      setError("Failed to load checkout data");
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const validateForm = (): boolean => {
-    const newErrors: Partial<ShippingAddress> = {};
+  const handleSelectAddress = (address: UserAddress) => {
+    setUserAddress(address);
+    setShowAddressModal(false);
+  };
 
-    if (!shippingAddress.fullName.trim()) {
-      newErrors.fullName = "Full name is required";
+  const handleApplyVoucher = () => {
+    if (voucherCode.trim() === "GROWLOKAL10") {
+      setAppliedVoucher({ code: voucherCode, discount: 50 });
+      setVoucherCode("");
+    } else {
+      alert("Invalid voucher code");
     }
+  };
 
-    if (!shippingAddress.email.trim()) {
-      newErrors.email = "Email is required";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(shippingAddress.email)) {
-      newErrors.email = "Invalid email format";
-    }
-
-    if (!shippingAddress.phone.trim()) {
-      newErrors.phone = "Phone number is required";
-    } else if (!/^[\d\s\-+()]{10,}$/.test(shippingAddress.phone)) {
-      newErrors.phone = "Invalid phone number";
-    }
-
-    if (!shippingAddress.address.trim()) {
-      newErrors.address = "Address is required";
-    }
-
-    if (!shippingAddress.city.trim()) {
-      newErrors.city = "City is required";
-    }
-
-    if (!shippingAddress.province.trim()) {
-      newErrors.province = "Province is required";
-    }
-
-    if (!shippingAddress.postalCode.trim()) {
-      newErrors.postalCode = "Postal code is required";
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+  const handleRemoveVoucher = () => {
+    setAppliedVoucher(null);
   };
 
   const handlePlaceOrder = async () => {
-    if (!validateForm()) {
-      alert("Please fill in all required fields correctly");
+    if (!selectedPayment) {
+      alert("Please select a payment method");
       return;
     }
 
-    setIsProcessing(true);
-    
+    if (!userAddress) {
+      alert("Please provide a delivery address");
+      return;
+    }
+
     try {
-      // Prepare order data
+      setIsProcessing(true);
+      setError("");
+
+      const subtotal = checkoutItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+      const shippingFee = selectedShipping.price;
+      const discount = appliedVoucher?.discount || 0;
+      const total = subtotal + shippingFee - discount;
+
       const orderData = {
-        items: items.map(item => ({
-          productId: item.productId,
-          name: item.name,
-          price: item.price,
-          quantity: item.quantity,
-          image: item.image,
-          artistName: item.artistName,
-        })),
-        shippingAddress,
-        paymentMethod,
+        items: checkoutItems,
+        shippingAddress: userAddress,
+        shippingOption: selectedShipping,
+        paymentMethod: selectedPayment,
+        voucher: appliedVoucher,
+        messageToSeller: messageToSeller,
         subtotal,
         shippingFee,
+        discount,
         total,
       };
 
-      // Call order API
       const response = await fetch("/api/orders", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(orderData),
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Failed to create order");
+        throw new Error("Failed to create order");
       }
 
       const result = await response.json();
-      
-      // Set flag to prevent redirect to cart when cart gets cleared
-      setOrderPlaced(true);
-      
-      // If payment method is card, redirect to payment page
-      if (paymentMethod === "card") {
-        router.push(`/payment/${result.data.orderId}`);
-      } else {
-        // For COD/GCash, show success and redirect to orders
-        alert("Order placed successfully!");
-        router.push(`/orders/${result.data.orderId}`);
-      }
-    } catch (error: any) {
-      console.error("Order error:", error);
-      alert(error.message || "Failed to place order. Please try again.");
+
+      // Clear cart after successful order
+      await clearCart();
+      sessionStorage.removeItem("checkoutCart");
+
+      // Show success modal
+      setShowSuccessModal(true);
+
+      // Redirect based on payment method
+      setTimeout(() => {
+        if (selectedPayment === "card") {
+          router.push(`/payment/${result.data.orderId || result.data._id}`);
+        } else if (selectedPayment === "ewallet") {
+          router.push("/verification-payment");
+        } else {
+          router.push("/profile?section=orders");
+        }
+      }, 1500);
+    } catch (err) {
+      console.error("Error placing order:", err);
+      setError("Failed to place order. Please try again.");
     } finally {
       setIsProcessing(false);
     }
   };
 
-  if (!items || items.length === 0) {
+  // Calculations
+  const totalItems = checkoutItems.reduce((sum, item) => sum + item.quantity, 0);
+  const subtotal = checkoutItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const shippingFee = selectedShipping.price;
+  const discount = appliedVoucher?.discount || 0;
+  const total = subtotal + shippingFee - discount;
+
+  // Get estimated delivery date
+  const getEstimatedDelivery = () => {
+    const days = parseInt(selectedShipping.estimatedDays.split("-")[1]);
+    const date = new Date();
+    date.setDate(date.getDate() + days);
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  };
+
+  if (isLoading) {
     return (
       <>
         <Navbar />
-        <main className="checkout-page">
-          <div className="checkout-container">
-            <div className="loading-spinner">
-              <i className="fas fa-spinner fa-spin"></i>
-              <p>Loading...</p>
-            </div>
+        <div className="checkout-wrapper">
+          <div style={{ textAlign: "center", padding: "2rem" }}>Loading checkout...</div>
+        </div>
+        <Footer />
+      </>
+    );
+  }
+
+  if (checkoutItems.length === 0) {
+    return (
+      <>
+        <Navbar />
+        <div className="checkout-wrapper">
+          <div style={{ textAlign: "center", padding: "2rem" }}>
+            <p>No items in checkout</p>
+            <button onClick={() => router.push("/cart")} className="place-order-btn">
+              Go to Cart
+            </button>
           </div>
-        </main>
+        </div>
         <Footer />
       </>
     );
@@ -190,240 +254,359 @@ export default function CheckoutPage() {
   return (
     <>
       <Navbar />
-      <main className="checkout-page">
-        <div className="checkout-container">
-          <h1>Checkout</h1>
-          
-          <div className="checkout-content">
-            {/* Left Column: Forms */}
-            <div className="checkout-forms">
-              {/* Shipping Address */}
-              <section className="checkout-section">
-                <h2>Shipping Address</h2>
-                
-                <div className="form-grid">
-                  <div className="form-group full-width">
-                    <label>Full Name *</label>
-                    <input
-                      type="text"
-                      value={shippingAddress.fullName}
-                      onChange={(e) => handleInputChange("fullName", e.target.value)}
-                      placeholder="Juan Dela Cruz"
-                      className={errors.fullName ? "error" : ""}
-                    />
-                    {errors.fullName && <span className="error-text">{errors.fullName}</span>}
-                  </div>
 
-                  <div className="form-group">
-                    <label>Email *</label>
-                    <input
-                      type="email"
-                      value={shippingAddress.email}
-                      onChange={(e) => handleInputChange("email", e.target.value)}
-                      placeholder="juan@example.com"
-                      className={errors.email ? "error" : ""}
-                    />
-                    {errors.email && <span className="error-text">{errors.email}</span>}
-                  </div>
+      <div className="checkout-wrapper">
+        {/* Page Title */}
+        <div className="checkout-title-bar">
+          <FaShoppingCart className="checkout-title-icon" />
+          <span className="checkout-title-text">Checkout</span>
+        </div>
 
-                  <div className="form-group">
-                    <label>Phone Number *</label>
-                    <input
-                      type="tel"
-                      value={shippingAddress.phone}
-                      onChange={(e) => handleInputChange("phone", e.target.value)}
-                      placeholder="+63 912 345 6789"
-                      className={errors.phone ? "error" : ""}
-                    />
-                    {errors.phone && <span className="error-text">{errors.phone}</span>}
-                  </div>
+        {/* Delivery Address Card */}
+        <div className="checkout-address-card">
+          <div className="address-header">
+            <FaMapMarkerAlt className="address-icon" />
+            <span className="address-title">Delivery Address</span>
+            <button
+              className="change-address-btn"
+              onClick={() => setShowAddressModal(true)}
+            >
+              Change
+            </button>
+          </div>
 
-                  <div className="form-group full-width">
-                    <label>Street Address *</label>
-                    <input
-                      type="text"
-                      value={shippingAddress.address}
-                      onChange={(e) => handleInputChange("address", e.target.value)}
-                      placeholder="123 Main Street, Barangay Name"
-                      className={errors.address ? "error" : ""}
-                    />
-                    {errors.address && <span className="error-text">{errors.address}</span>}
-                  </div>
-
-                  <div className="form-group">
-                    <label>City *</label>
-                    <input
-                      type="text"
-                      value={shippingAddress.city}
-                      onChange={(e) => handleInputChange("city", e.target.value)}
-                      placeholder="Manila"
-                      className={errors.city ? "error" : ""}
-                    />
-                    {errors.city && <span className="error-text">{errors.city}</span>}
-                  </div>
-
-                  <div className="form-group">
-                    <label>Province *</label>
-                    <input
-                      type="text"
-                      value={shippingAddress.province}
-                      onChange={(e) => handleInputChange("province", e.target.value)}
-                      placeholder="Metro Manila"
-                      className={errors.province ? "error" : ""}
-                    />
-                    {errors.province && <span className="error-text">{errors.province}</span>}
-                  </div>
-
-                  <div className="form-group">
-                    <label>Postal Code *</label>
-                    <input
-                      type="text"
-                      value={shippingAddress.postalCode}
-                      onChange={(e) => handleInputChange("postalCode", e.target.value)}
-                      placeholder="1000"
-                      className={errors.postalCode ? "error" : ""}
-                    />
-                    {errors.postalCode && <span className="error-text">{errors.postalCode}</span>}
-                  </div>
-
-                  <div className="form-group">
-                    <label>Country *</label>
-                    <input
-                      type="text"
-                      value={shippingAddress.country}
-                      onChange={(e) => handleInputChange("country", e.target.value)}
-                      disabled
-                    />
-                  </div>
-                </div>
-              </section>
-
-              {/* Payment Method */}
-              <section className="checkout-section">
-                <h2>Payment Method</h2>
-                
-                <div className="payment-methods">
-                  <label className={`payment-option ${paymentMethod === "card" ? "selected" : ""}`}>
-                    <input
-                      type="radio"
-                      name="payment"
-                      value="card"
-                      checked={paymentMethod === "card"}
-                      onChange={(e) => setPaymentMethod(e.target.value as any)}
-                    />
-                    <div className="payment-content">
-                      <i className="fas fa-credit-card"></i>
-                      <div>
-                        <strong>Credit/Debit Card</strong>
-                        <p>Pay securely with your card via PayMongo</p>
-                      </div>
-                    </div>
-                  </label>
-
-                  <label className={`payment-option ${paymentMethod === "gcash" ? "selected" : ""}`}>
-                    <input
-                      type="radio"
-                      name="payment"
-                      value="gcash"
-                      checked={paymentMethod === "gcash"}
-                      onChange={(e) => setPaymentMethod(e.target.value as any)}
-                    />
-                    <div className="payment-content">
-                      <i className="fas fa-mobile-alt"></i>
-                      <div>
-                        <strong>GCash</strong>
-                        <p>Pay using GCash e-wallet</p>
-                      </div>
-                    </div>
-                  </label>
-
-                  <label className={`payment-option ${paymentMethod === "cod" ? "selected" : ""}`}>
-                    <input
-                      type="radio"
-                      name="payment"
-                      value="cod"
-                      checked={paymentMethod === "cod"}
-                      onChange={(e) => setPaymentMethod(e.target.value as any)}
-                    />
-                    <div className="payment-content">
-                      <i className="fas fa-money-bill-wave"></i>
-                      <div>
-                        <strong>Cash on Delivery</strong>
-                        <p>Pay when you receive your order</p>
-                      </div>
-                    </div>
-                  </label>
-                </div>
-              </section>
+          {userAddress && (
+            <div className="address-details">
+              <div className="address-left">
+                <div className="address-name">{session?.user?.name || "Guest User"}</div>
+                <div className="address-phone">{userAddress.phone}</div>
+              </div>
+              <div className="address-right">
+                {userAddress.street}, {userAddress.barangay}, {userAddress.city}, {userAddress.province} {userAddress.postalCode}
+              </div>
             </div>
+          )}
+        </div>
 
-            {/* Right Column: Order Summary */}
-            <div className="order-summary-sidebar">
-              <section className="checkout-section">
-                <h2>Order Summary</h2>
-                
-                <div className="order-items">
-                  {items.map((item) => (
-                    <div key={item.productId} className="order-item">
-                      <img src={item.image} alt={item.name} />
-                      <div className="order-item-details">
-                        <p className="item-name">{item.name}</p>
-                        <p className="item-quantity">Qty: {item.quantity}</p>
-                      </div>
-                      <p className="item-price">₱{(item.price * item.quantity).toFixed(2)}</p>
-                    </div>
-                  ))}
+        {/* Product Summary Card */}
+        <div className="checkout-summary-card">
+          <div className="checkout-header-row">
+            <span>Product Ordered</span>
+            <span>Unit Price</span>
+            <span>Quantity</span>
+            <span>Item Subtotal</span>
+          </div>
+
+          {checkoutItems.map((item) => (
+            <div className="checkout-item-row" key={item.productId}>
+              <div className="product-info">
+                <img src={item.image} alt={item.name} />
+                <div className="product-details">
+                  <div className="seller-name">{item.artistName}</div>
+                  <div className="product-name">{item.name}</div>
                 </div>
+              </div>
 
-                <div className="order-totals">
-                  <div className="total-row">
-                    <span>Subtotal ({itemCount} items)</span>
-                    <span>₱{subtotal.toFixed(2)}</span>
-                  </div>
-                  <div className="total-row">
-                    <span>Shipping Fee</span>
-                    <span>{shippingFee === 0 ? "FREE" : `₱${shippingFee.toFixed(2)}`}</span>
-                  </div>
-                  {subtotal < 1000 && (
-                    <p className="shipping-note">
-                      <i className="fas fa-info-circle"></i>
-                      Free shipping on orders over ₱1,000
-                    </p>
-                  )}
-                  <div className="total-divider"></div>
-                  <div className="total-row grand-total">
-                    <span>Total</span>
-                    <span>₱{total.toFixed(2)}</span>
-                  </div>
-                </div>
+              <div className="product-price">₱{item.price.toFixed(2)}</div>
+              <div className="product-quantity">{item.quantity}</div>
+              <div className="product-subtotal">
+                ₱{(item.price * item.quantity).toFixed(2)}
+              </div>
+            </div>
+          ))}
 
+          <hr className="checkout-divider" />
+
+          {/* Shipping Section */}
+          <div className="checkout-shipping-section">
+            <div className="shipping-header">
+              <span className="shipping-label">Shipping Option</span>
+              <button 
+                className="change-shipping-btn"
+                onClick={() => setShowShippingOptions(true)}
+              >
+                Change
+              </button>
+            </div>
+            <div className="shipping-details">
+              <div className="shipping-name">{selectedShipping.name}</div>
+              <div className="shipping-estimate">
+                Receive by {getEstimatedDelivery()}
+              </div>
+              <div className="shipping-guarantee">
+                Guaranteed delivery by {selectedShipping.estimatedDays}
+              </div>
+            </div>
+            <div className="shipping-fee">₱{shippingFee.toFixed(2)}</div>
+          </div>
+
+          <hr className="checkout-divider" />
+
+          {/* Voucher Section */}
+          <div className="checkout-voucher-section">
+            <span className="voucher-label">Grow-Lokal Voucher</span>
+            {appliedVoucher ? (
+              <div className="voucher-applied">
+                <span className="voucher-code">{appliedVoucher.code}</span>
+                <span className="voucher-discount">-₱{appliedVoucher.discount}</span>
                 <button 
-                  className="place-order-btn"
-                  onClick={handlePlaceOrder}
-                  disabled={isProcessing}
+                  className="remove-voucher-btn"
+                  onClick={handleRemoveVoucher}
                 >
-                  {isProcessing ? (
-                    <>
-                      <i className="fas fa-spinner fa-spin"></i>
-                      Processing...
-                    </>
-                  ) : (
-                    <>
-                      <i className="fas fa-lock"></i>
-                      Place Order
-                    </>
-                  )}
+                  ✕
                 </button>
+              </div>
+            ) : (
+              <button 
+                className="select-voucher-btn"
+                onClick={() => {
+                  const code = prompt("Enter voucher code:");
+                  if (code) {
+                    setVoucherCode(code);
+                    setTimeout(() => handleApplyVoucher(), 100);
+                  }
+                }}
+              >
+                Select Voucher
+              </button>
+            )}
+          </div>
 
-                <p className="secure-checkout">
-                  <i className="fas fa-shield-alt"></i>
-                  Secure checkout powered by PayMongo
-                </p>
-              </section>
-            </div>
+          <hr className="checkout-divider" />
+
+          {/* Message to Seller */}
+          <div className="checkout-message-section">
+            <label className="message-label">Message to Seller (Optional)</label>
+            <input
+              type="text"
+              className="message-input"
+              placeholder="Leave a message for the seller..."
+              value={messageToSeller}
+              onChange={(e) => setMessageToSeller(e.target.value.slice(0, 200))}
+              maxLength={200}
+            />
+            <div className="message-counter">{messageToSeller.length}/200</div>
+          </div>
+
+          <hr className="checkout-divider" />
+
+          <div className="checkout-total">
+            <span className="total-label">
+              Order Total ({totalItems} {totalItems > 1 ? "items" : "item"}):
+            </span>
+            <span className="total-amount">₱{total.toFixed(2)}</span>
           </div>
         </div>
-      </main>
+
+        {/* Payment Method Card */}
+        <div className="checkout-payment-card">
+          <div className="payment-header">
+            <div className="payment-title-group">
+              <span className="payment-title">Payment Method</span>
+              <div className="payment-buttons">
+                <button
+                  type="button"
+                  className={`payment-btn ${
+                    selectedPayment === "cod" ? "active" : ""
+                  }`}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => setSelectedPayment("cod")}
+                >
+                  Cash on Delivery
+                </button>
+                <button
+                  type="button"
+                  className={`payment-btn ${
+                    selectedPayment === "card" ? "active" : ""
+                  }`}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => setSelectedPayment("card")}
+                >
+                  Credit/Debit Card
+                </button>
+                <button
+                  type="button"
+                  className={`payment-btn ${
+                    selectedPayment === "ewallet" ? "active" : ""
+                  }`}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => setSelectedPayment("ewallet")}
+                >
+                  E-Wallet
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <hr className="checkout-divider" />
+
+          <div className="payment-section">
+            {/* LEFT: Payment Info */}
+            <div className="payment-left">
+              {selectedPayment === "card" && (
+                <div className="payment-info-box">
+                  <p className="payment-info-text">
+                    You will be redirected to our secure payment page to enter your card details.
+                  </p>
+                  <p className="payment-info-note">
+                    We accept Visa, Mastercard, and other major credit/debit cards.
+                  </p>
+                </div>
+              )}
+              {selectedPayment === "ewallet" && (
+                <label className="paymongo-radio-row">
+                  <input
+                    type="radio"
+                    className="paymongo-radio"
+                    checked={true}
+                    readOnly
+                  />
+                  <img
+                    src="/paymongo-logo.png"
+                    alt="PayMongo"
+                    className="paymongo-logo"
+                  />
+                  <div className="paymongo-info">
+                    <span className="paymongo-title">PayMongo</span>
+                    <span className="paymongo-note">
+                      Complete your PayMongo e-wallet payment within 30 mins.{" "}
+                      <br />
+                      Min. ₱50, available 24/7, with a 2% processing fee.
+                    </span>
+                  </div>
+                </label>
+              )}
+              {selectedPayment === "cod" && (
+                <div className="payment-info-box">
+                  <p className="payment-info-text">
+                    Pay with cash when your order is delivered to your doorstep.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* RIGHT: Payment Summary */}
+            <div className="payment-right">
+              <div className="checkout-summary-card payment-summary">
+                <div className="summary-row">
+                  <span className="summary-label">Merchandise Subtotal</span>
+                  <span className="summary-value">₱{subtotal.toFixed(2)}</span>
+                </div>
+                <div className="summary-row">
+                  <span className="summary-label">Shipping Subtotal</span>
+                  <span className="summary-value">
+                    ₱{shippingFee.toFixed(2)}
+                  </span>
+                </div>
+                {appliedVoucher && (
+                  <div className="summary-row discount">
+                    <span className="summary-label">Voucher Discount</span>
+                    <span className="summary-value discount">-₱{discount.toFixed(2)}</span>
+                  </div>
+                )}
+                <div className="summary-row total">
+                  <span className="summary-label">Total Payment</span>
+                  <span className="summary-total">₱{total.toFixed(2)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <hr className="checkout-divider" />
+
+          <div className="place-order-container">
+            {error && <div className="error-message">{error}</div>}
+            <button
+              className="place-order-btn"
+              onClick={handlePlaceOrder}
+              disabled={!selectedPayment || isProcessing}
+            >
+              {isProcessing ? "Processing..." : "Place Order"}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Shipping Options Modal */}
+      {showShippingOptions && (
+        <div className="modal-overlay" onClick={() => setShowShippingOptions(false)}>
+          <div className="modal-box shipping-modal" onClick={(e) => e.stopPropagation()}>
+            <h3 className="modal-title">Select Shipping Option</h3>
+            <div className="shipping-options-list">
+              {shippingOptions.map((option) => (
+                <div
+                  key={option.id}
+                  className={`shipping-option-item ${selectedShipping.id === option.id ? "selected" : ""}`}
+                  onClick={() => {
+                    setSelectedShipping(option);
+                    setShowShippingOptions(false);
+                  }}
+                >
+                  <div className="shipping-option-info">
+                    <div className="shipping-option-name">{option.name}</div>
+                    <div className="shipping-option-days">{option.estimatedDays}</div>
+                  </div>
+                  <div className="shipping-option-price">₱{option.price}</div>
+                </div>
+              ))}
+            </div>
+            <button 
+              className="modal-close-btn"
+              onClick={() => setShowShippingOptions(false)}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Address Selection Modal */}
+      {showAddressModal && (
+        <div className="modal-overlay" onClick={() => setShowAddressModal(false)}>
+          <div className="modal-box address-modal" onClick={(e) => e.stopPropagation()}>
+            <h3 className="modal-title">Select Delivery Address</h3>
+            <div className="address-list">
+              {savedAddresses.map((address, index) => (
+                <div
+                  key={index}
+                  className={`address-item ${userAddress === address ? "selected" : ""}`}
+                  onClick={() => handleSelectAddress(address)}
+                >
+                  <div className="address-item-info">
+                    <div className="address-item-phone">{address.phone}</div>
+                    <div className="address-item-text">
+                      {address.street}, {address.barangay}, {address.city}, {address.province} {address.postalCode}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <button 
+              className="modal-close-btn"
+              onClick={() => setShowAddressModal(false)}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Order Success Modal */}
+      {showSuccessModal && (
+        <div className="modal-overlay">
+          <div className="modal-box">
+            <h3 className="modal-title">🎉 Order Placed Successfully!</h3>
+            <p className="modal-text">
+              {selectedPayment === "card" 
+                ? "Redirecting to payment page..." 
+                : selectedPayment === "ewallet"
+                ? "Redirecting to payment verification..."
+                : "Thank you for your order! You'll receive updates on your order status."}
+            </p>
+          </div>
+        </div>
+      )}
+
       <Footer />
     </>
   );

@@ -231,6 +231,113 @@
   opacity: 1;
 }
 
+/* Add to cart icon button */
+.add-to-cart-icon {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.add-to-cart-icon:hover:not(:disabled) {
+  background: #2E3F36;
+  transform: scale(1.1);
+}
+
+.add-to-cart-icon:hover:not(:disabled) svg {
+  color: white;
+}
+
+.add-to-cart-icon:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.add-to-cart-icon svg {
+  font-size: 18px;
+  color: #2E3F36;
+  transition: color 0.3s ease;
+}
+
+.add-to-cart-icon.loading {
+  background: rgba(255, 255, 255, 0.95);
+  pointer-events: none;
+}
+
+.add-to-cart-icon.success {
+  background: #28a745;
+}
+
+.add-to-cart-icon.success svg {
+  color: white;
+}
+
+.add-to-cart-icon.error {
+  background: #dc3545;
+}
+
+.add-to-cart-icon.error svg {
+  color: white;
+}
+
+@keyframes spin {
+  to { 
+    transform: rotate(360deg); 
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.loading-spinner {
+  animation: spin 0.6s linear infinite;
+  color: #2E3F36;
+}
+
+/* Skeleton loading styles */
+.product-card.skeleton {
+  pointer-events: none;
+}
+
+.skeleton-image {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 1000px 100%;
+  animation: shimmer 2s infinite;
+  height: 100%;
+  border-radius: 8px 8px 0 0;
+}
+
+.skeleton-text {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 1000px 100%;
+  animation: shimmer 2s infinite;
+  height: 16px;
+  margin: 8px 12px;
+  border-radius: 4px;
+}
+
+.skeleton-text.short {
+  width: 60%;
+  height: 14px;
+}
+
 .product-info {
   background: #2E3F36;
   width: 100%;
